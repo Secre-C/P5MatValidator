@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33627.172
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P5MatValidator", "P5MatValidator.csproj", "{A38FFDFE-519E-4B3E-98B3-9FD5E0580840}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A38FFDFE-519E-4B3E-98B3-9FD5E0580840}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A38FFDFE-519E-4B3E-98B3-9FD5E0580840}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A38FFDFE-519E-4B3E-98B3-9FD5E0580840}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A38FFDFE-519E-4B3E-98B3-9FD5E0580840}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1D2F074A-2DE9-4B47-BB5F-FDC3B4B46516}
+	EndGlobalSection
+EndGlobal
