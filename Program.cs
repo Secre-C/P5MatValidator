@@ -69,16 +69,14 @@ namespace P5MatValidator
         static void dumpMats(string[] args, Stopwatch stopwatch)
         {
             string modelDir = args[1];
-            string matOutputDir = args[0] + "\\mats\\";
+            string matOutputDir = args[0];
 
             List<string> gfsFileNames = Directory.GetFiles($"{modelDir}", $"*.GFS", SearchOption.AllDirectories).ToList();
             gfsFileNames.AddRange(Directory.GetFiles($"{modelDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
 
             var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
 
-            Directory.CreateDirectory(matOutputDir);
-
-            foreach ( var file in gfsFileNames )
+            foreach ( var file in asSpan)
             {
                 try
                 {
