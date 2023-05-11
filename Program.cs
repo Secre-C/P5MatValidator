@@ -50,8 +50,13 @@ namespace P5MatValidator
             List<string> InvalidMats = new();
             List<string> validMats = new();
 
+            Console.Clear();
+            Console.WriteLine("Scanning For Matching Materials:\n");
+
             foreach ( var material in RoyalMaterials )
             {
+                Console.WriteLine(material.Name);
+
                 var result = CompareMaterial(material, args[1]);
                 if (!result.Item1)
                 {
@@ -66,47 +71,23 @@ namespace P5MatValidator
             PrintResults(stopwatch, InvalidMats, validMats);
         }
 
-        static void dumpMats(string[] args, Stopwatch stopwatch)
-        {
-            string modelDir = args[1];
-            string matOutputDir = args[0];
-
-            List<string> gfsFileNames = Directory.GetFiles($"{modelDir}", $"*.GFS", SearchOption.AllDirectories).ToList();
-            gfsFileNames.AddRange(Directory.GetFiles($"{modelDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
-
-            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
-
-            foreach ( var file in asSpan)
-            {
-                try
-                {
-                    var gfsFile = LoadModel(file);
-
-                    string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
-                    Directory.CreateDirectory(matOutputDir + savePath);
-
-                    gfsFile.Materials.Save(matOutputDir + savePath + Path.GetFileNameWithoutExtension(file) + ".gmtd");
-                }
-                catch { }
-            }
-
-            stopwatch.Stop();
-            Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
-
-            return;
-        }
-
         static void PrintResults(Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
         {
             Console.Clear();
 
-            Console.WriteLine("\nInvalid Mats:\n");
+            Console.WriteLine("\n===============================================");
+            Console.WriteLine("Invalid Mats:\n");
+
             foreach (var mat in InvalidMats)
                 Console.WriteLine(mat);
 
-            Console.WriteLine("\nValid Mats:\n");
+            Console.WriteLine("===============================================");
+            Console.WriteLine("Valid Mats:\n");
             foreach (var mat in validMats)
                 Console.WriteLine(mat);
+
+
+            Console.WriteLine("===============================================");
 
             stopwatch.Stop();
             Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
@@ -210,6 +191,36 @@ namespace P5MatValidator
             }
             else
                 return new List<Material>();
+        }
+
+        static void dumpMats(string[] args, Stopwatch stopwatch)
+        {
+            string modelDir = args[1];
+            string matOutputDir = args[0];
+
+            List<string> gfsFileNames = Directory.GetFiles($"{modelDir}", $"*.GFS", SearchOption.AllDirectories).ToList();
+            gfsFileNames.AddRange(Directory.GetFiles($"{modelDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
+
+            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
+
+            foreach (var file in asSpan)
+            {
+                try
+                {
+                    var gfsFile = LoadModel(file);
+
+                    string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
+                    Directory.CreateDirectory(matOutputDir + savePath);
+
+                    gfsFile.Materials.Save(matOutputDir + savePath + Path.GetFileNameWithoutExtension(file) + ".gmtd");
+                }
+                catch { }
+            }
+
+            stopwatch.Stop();
+            Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
+
+            return;
         }
 
         //Assert.AreEqual(a.Name, b.Name);
