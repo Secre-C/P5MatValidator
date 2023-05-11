@@ -51,7 +51,11 @@ namespace P5MatValidator
             List<string> validMats = new();
 
             Console.Clear();
-            Console.WriteLine("Scanning For Matching Materials:\n");
+
+            if (!strictMode)
+                Console.WriteLine("Scanning For Matching Materials:\n");
+            else
+                Console.WriteLine("Scanning For Matching Materials in Strict Mode:\n");
 
             foreach ( var material in RoyalMaterials )
             {
@@ -76,7 +80,11 @@ namespace P5MatValidator
             Console.Clear();
 
             Console.WriteLine("\n===============================================");
-            Console.WriteLine("Invalid Mats:\n");
+
+            if (!strictMode)
+                Console.WriteLine("Invalid Mats:\n");
+            else
+                Console.WriteLine("Invalid Mats (Strict Mode):\n");
 
             foreach (var mat in InvalidMats)
                 Console.WriteLine(mat);
