@@ -40,7 +40,7 @@ namespace P5MatValidator
 
             if (dumpMode)
             {
-                dumpMats(args, stopwatch);
+                DumpMats(args, stopwatch);
                 return;
             }
 
@@ -79,7 +79,7 @@ namespace P5MatValidator
             List<Material> referenceMaterials = new ();
 
             //Generate Compare Material List 
-            List<Material> compareMaterials = compareMaterials = GenerateMaterialList(compareModelDir).ToList();
+            List<Material> compareMaterials = GenerateMaterialList(compareModelDir).ToList();
 
             List<string> matFileNames = Directory.GetFiles($"{referenceMaterialDir}", $"*.gmtd", SearchOption.AllDirectories).ToList();
             matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.gmt", SearchOption.AllDirectories).ToList());
@@ -208,7 +208,7 @@ namespace P5MatValidator
                 return new List<Material>();
         }
 
-        static void dumpMats(string[] args, Stopwatch stopwatch)
+        static void DumpMats(string[] args, Stopwatch stopwatch)
         {
             string modelDir = args[1];
             string matOutputDir = args[0];
@@ -268,44 +268,48 @@ namespace P5MatValidator
 
         static bool AreAttributesEqual(Material a, Material b)
         {
+            if (!a.Flags.HasFlag(MaterialFlags.HasAttributes) && !b.Flags.HasFlag(MaterialFlags.HasAttributes))
+                return true;
+            else if (!a.Flags.HasFlag(MaterialFlags.HasAttributes) || !b.Flags.HasFlag(MaterialFlags.HasAttributes))
+                return false;
+
+            if (a.Attributes.Count != b.Attributes.Count) 
+                return false;
+
             bool typeMatchFound = false;
 
-            if (a.Flags.HasFlag(MaterialFlags.HasAttributes) && b.Flags.HasFlag(MaterialFlags.HasAttributes))
+            foreach (var attr in a.Attributes)
             {
-                if (a.Attributes.Count != b.Attributes.Count) return false;
+                foreach (var attr2 in b.Attributes)
+                {
+                    if (attr.AttributeType == attr2.AttributeType)
+                    {
+                        typeMatchFound = true;
+                        break;
+                    }
+                }
 
-                foreach (var attr in a.Attributes) 
+                if (!typeMatchFound) 
+                    return false;
+
+                typeMatchFound = false;
+            }
+
+            foreach (var attr in a.Attributes)
+            {
+                if (attr.AttributeType == MaterialAttributeType.Type1)
                 {
                     foreach (var attr2 in b.Attributes)
                     {
-                        if (attr.AttributeType == attr2.AttributeType)
+                        if (attr2.AttributeType == MaterialAttributeType.Type1)
                         {
-                            typeMatchFound = true;
-                            break;
-                        }
-                    }
+                            var type1a = (MaterialAttributeType1)attr;
+                            var type1b = (MaterialAttributeType1)attr2;
 
-                    if (!typeMatchFound) return false;
-
-                    typeMatchFound = false;
-                }
-
-                foreach (var attr in a.Attributes)
-                {
-                    if (attr.AttributeType == MaterialAttributeType.Type1)
-                    {
-                        foreach(var attr2 in b.Attributes)
-                        {
-                            if (attr2.AttributeType == MaterialAttributeType.Type1)
-                            {
-                                var type1a = (MaterialAttributeType1)attr;
-                                var type1b = (MaterialAttributeType1)attr2;
-
-                                if (type1a.RawFlags != type1b.RawFlags) return false;
-                                if (((ushort)type1a.Type1Flags) != ((ushort)type1b.Type1Flags)) return false;
-                                if (type1a.Field1C != type1b.Field1C && strictMode) return false;
-                                if (type1a.Field20 != type1b.Field20 && strictMode) return false;
-                            }
+                            if (type1a.RawFlags != type1b.RawFlags) return false;
+                            if (((ushort)type1a.Type1Flags) != ((ushort)type1b.Type1Flags)) return false;
+                            if (type1a.Field1C != type1b.Field1C && strictMode) return false;
+                            if (type1a.Field20 != type1b.Field20 && strictMode) return false;
                         }
                     }
                 }
