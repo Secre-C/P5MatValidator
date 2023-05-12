@@ -50,17 +50,8 @@ namespace P5MatValidator
             List<string> InvalidMats = new();
             List<string> validMats = new();
 
-            Console.Clear();
-
-            if (!strictMode)
-                Console.WriteLine("Scanning For Matching Materials:\n");
-            else
-                Console.WriteLine("Scanning For Matching Materials in Strict Mode:\n");
-
             foreach ( var material in compareMaterials )
             {
-                Console.WriteLine(material.Name);
-
                 var result = CompareMaterial(material, referenceMaterials);
                 if (!result.Item1)
                 {
@@ -72,7 +63,7 @@ namespace P5MatValidator
                 }
             }
 
-            PrintResults(stopwatch, InvalidMats, validMats);
+            PrintResults(args[0], stopwatch, InvalidMats, validMats);
         }
         static (List<Material>, List<Material>) PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
         {
@@ -99,11 +90,14 @@ namespace P5MatValidator
 
             return(compareMaterials, referenceMaterials);
         }
-        static void PrintResults(Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
+        static void PrintResults(string filePath, Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
         {
             Console.Clear();
 
             Console.WriteLine("\n===============================================");
+            Console.WriteLine($"{Path.GetFileName(filePath)}:");
+
+            Console.WriteLine("===============================================");
 
             if (!strictMode)
                 Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
@@ -123,7 +117,7 @@ namespace P5MatValidator
             Console.WriteLine("===============================================");
 
             stopwatch.Stop();
-            Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
+            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
         }
 
         static (bool, string) CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
@@ -227,40 +221,17 @@ namespace P5MatValidator
                     string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
                     Directory.CreateDirectory(matOutputDir + savePath);
 
-                    gfsFile.Materials.Save(matOutputDir + savePath + Path.GetFileNameWithoutExtension(file) + ".gmtd");
+                    gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
                 }
                 catch { }
             }
 
             stopwatch.Stop();
-            Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
+            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
 
             return;
         }
 
-        //Assert.AreEqual(a.Name, b.Name);
-        //Assert.AreEqual(a.Flags, b.Flags);
-        //Assert.AreEqual(a.AmbientColor, b.AmbientColor);
-        //Assert.AreEqual(a.DiffuseColor, b.DiffuseColor);
-        //Assert.AreEqual(a.SpecularColor, b.SpecularColor);
-        //Assert.AreEqual(a.EmissiveColor, b.EmissiveColor);
-        //Assert.AreEqual(a.Field40, b.Field40);
-        //Assert.AreEqual(a.Field44, b.Field44);
-        //Assert.AreEqual(a.DrawMethod, b.DrawMethod);
-        //Assert.AreEqual(a.Field49, b.Field49);
-        //Assert.AreEqual(a.Field4A, b.Field4A);
-        //Assert.AreEqual(a.Field4B, b.Field4B);
-        //Assert.AreEqual(a.Field4C, b.Field4C);
-        //Assert.AreEqual(a.Field4D, b.Field4D);
-        //Assert.AreEqual(a.Field90, b.Field90);
-        //Assert.AreEqual(a.Field92, b.Field92);
-        //Assert.AreEqual(a.Field94, b.Field94);
-        //Assert.AreEqual(a.Field96, b.Field96);
-        //Assert.AreEqual(a.Field5C, b.Field5C);
-        //Assert.AreEqual(a.Field6C, b.Field6C);
-        //Assert.AreEqual(a.Field70, b.Field70);
-        //Assert.AreEqual(a.DisableBackfaceCulling, b.DisableBackfaceCulling);
-        //Assert.AreEqual(a.Field98, b.Field98);
         static bool AreEqual(object a, object b)
         {
             return Equals(a, b);
