@@ -44,8 +44,7 @@ namespace P5MatValidator
                 return;
             }
 
-            var inputGFS = LoadModel(args[0]);
-            var RoyalMaterials = inputGFS.Materials.Materials;
+            var RoyalMaterials = GenerateMaterialList(args[0]);
 
             List<string> InvalidMats = new();
             List<string> validMats = new();
@@ -57,11 +56,17 @@ namespace P5MatValidator
             else
                 Console.WriteLine("Scanning For Matching Materials in Strict Mode:\n");
 
+
+            List<string> matFileNames = Directory.GetFiles($"{args[1]}", $"*.gmtd", SearchOption.AllDirectories).ToList();
+            matFileNames.AddRange(Directory.GetFiles($"{args[1]}", $"*.gmt", SearchOption.AllDirectories).ToList());
+
+            var asSpan = CollectionsMarshal.AsSpan(matFileNames);
+
             foreach ( var material in RoyalMaterials )
             {
                 Console.WriteLine(material.Name);
 
-                var result = CompareMaterial(material, args[1]);
+                var result = CompareMaterial(material, asSpan);
                 if (!result.Item1)
                 {
                     InvalidMats.Add($"{material.Name}");
@@ -101,18 +106,13 @@ namespace P5MatValidator
             Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
         }
 
-        static (bool, string) CompareMaterial(Material royalMaterial, string vanillaModelDir)
+        static (bool, string) CompareMaterial(Material royalMaterial, Span<string> matFileNames)
         {
-            List<string> matfileNames = Directory.GetFiles($"{vanillaModelDir}", $"*.gmtd", SearchOption.AllDirectories).ToList();
-            matfileNames.AddRange(Directory.GetFiles($"{vanillaModelDir}", $"*.gmt", SearchOption.AllDirectories).ToList());
-
-            var asSpan = CollectionsMarshal.AsSpan(matfileNames);
-
-            foreach (string gfsFile in asSpan)
+            foreach (string referenceMaterial in matFileNames)
             {
                 try
                 {
-                    var vanillaMats = GenerateMaterialList(gfsFile);
+                    var vanillaMats = GenerateMaterialList(referenceMaterial);
 
                     foreach (var material in vanillaMats)
                     {
