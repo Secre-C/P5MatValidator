@@ -106,15 +106,16 @@ namespace P5MatValidator
             Console.WriteLine("\n===============================================");
 
             if (!strictMode)
-                Console.WriteLine("Invalid Mats:\n");
+                Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
             else
-                Console.WriteLine("Invalid Mats (Strict Mode):\n");
+                Console.WriteLine($"Invalid Mats (Strict Mode) ({InvalidMats.Count}):\n");
 
             foreach (var mat in InvalidMats)
                 Console.WriteLine(mat);
 
             Console.WriteLine("===============================================");
-            Console.WriteLine("Valid Mats:\n");
+            Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
+
             foreach (var mat in validMats)
                 Console.WriteLine(mat);
 
