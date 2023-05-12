@@ -44,7 +44,8 @@ namespace P5MatValidator
                 return;
             }
 
-            var RoyalMaterials = GenerateMaterialList(args[0]);
+            //Get both material lists
+            (List<Material> compareMaterials, List<Material> referenceMaterials) = PrepareMaterialLists(args[0], args[1]);
 
             List<string> InvalidMats = new();
             List<string> validMats = new();
@@ -56,17 +57,11 @@ namespace P5MatValidator
             else
                 Console.WriteLine("Scanning For Matching Materials in Strict Mode:\n");
 
-
-            List<string> matFileNames = Directory.GetFiles($"{args[1]}", $"*.gmtd", SearchOption.AllDirectories).ToList();
-            matFileNames.AddRange(Directory.GetFiles($"{args[1]}", $"*.gmt", SearchOption.AllDirectories).ToList());
-
-            var asSpan = CollectionsMarshal.AsSpan(matFileNames);
-
-            foreach ( var material in RoyalMaterials )
+            foreach ( var material in compareMaterials )
             {
                 Console.WriteLine(material.Name);
 
-                var result = CompareMaterial(material, asSpan);
+                var result = CompareMaterial(material, referenceMaterials);
                 if (!result.Item1)
                 {
                     InvalidMats.Add($"{material.Name}");
@@ -79,7 +74,31 @@ namespace P5MatValidator
 
             PrintResults(stopwatch, InvalidMats, validMats);
         }
+        static (List<Material>, List<Material>) PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
+        {
+            List<Material> referenceMaterials = new ();
 
+            //Generate Compare Material List 
+            List<Material> compareMaterials = compareMaterials = GenerateMaterialList(compareModelDir).ToList();
+
+            List<string> matFileNames = Directory.GetFiles($"{referenceMaterialDir}", $"*.gmtd", SearchOption.AllDirectories).ToList();
+            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.gmt", SearchOption.AllDirectories).ToList());
+            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.GFS", SearchOption.AllDirectories).ToList());
+            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
+
+            var asSpan = CollectionsMarshal.AsSpan(matFileNames);
+
+            foreach (string matFile in asSpan)
+            {
+                try
+                {
+                    referenceMaterials.AddRange(GenerateMaterialList(matFile));
+                }
+                catch { }
+            }
+
+            return(compareMaterials, referenceMaterials);
+        }
         static void PrintResults(Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
         {
             Console.Clear();
@@ -106,71 +125,58 @@ namespace P5MatValidator
             Console.WriteLine("\nElapsed Time: " + stopwatch.Elapsed);
         }
 
-        static (bool, string) CompareMaterial(Material royalMaterial, Span<string> matFileNames)
+        static (bool, string) CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
         {
-            foreach (string referenceMaterial in matFileNames)
+            foreach (var material in referenceMaterials)
             {
-                try
-                {
-                    var vanillaMats = GenerateMaterialList(referenceMaterial);
+                if (!AreMatFlagsEqual(material.Flags, royalMaterial.Flags))
+                    continue;
+                if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor) && strictMode)
+                    continue;
+                if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor) && strictMode)
+                    continue;
+                if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor) && strictMode)
+                    continue;
+                if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor) && strictMode)
+                    continue;
+                if (!AreEqual(material.Field40, royalMaterial.Field40) && strictMode) //reflectivity
+                    continue;
+                if (!AreEqual(material.Field44, royalMaterial.Field44) && strictMode) //outline index
+                    continue;
+                if (!AreEqual((byte)material.DrawMethod, (byte)royalMaterial.DrawMethod))
+                    continue;
+                if (!AreEqual(material.Field49, royalMaterial.Field49))
+                    continue;
+                if (!AreEqual(material.Field4A, royalMaterial.Field4A) && strictMode)
+                    continue;
+                if (!AreEqual(material.Field4B, royalMaterial.Field4B))
+                    continue;
+                if (!AreEqual(material.Field4C, royalMaterial.Field4C) && strictMode)
+                    continue;
+                if (!AreEqual(material.Field4D, royalMaterial.Field4D)) //highlight blend mode
+                    continue;
+                if (!AreEqual(material.Field90, royalMaterial.Field90))
+                    continue;
+                if (!AreEqual(material.Field92, royalMaterial.Field92))
+                    continue;
+                if (!AreEqual(material.Field94, royalMaterial.Field94))
+                    continue;
+                if (!AreEqual(material.Field96, royalMaterial.Field96))
+                    continue;
+                if (!AreEqual(material.Field5C, royalMaterial.Field5C))
+                    continue;
+                if (!AreEqual(material.Field6C, royalMaterial.Field6C)) //texcoord1
+                    continue;
+                if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
+                    continue;
+                if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling) && strictMode)
+                    continue;
+                if (!AreEqual(material.Field98, royalMaterial.Field98) && strictMode)
+                    continue;
+                if (!AreAttributesEqual(material, royalMaterial))
+                    continue;
 
-                    foreach (var material in vanillaMats)
-                    {
-                        if (!AreMatFlagsEqual(material.Flags, royalMaterial.Flags))
-                            continue;
-                        if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor) && strictMode)
-                            continue;
-                        if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor) && strictMode)
-                            continue;
-                        if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor) && strictMode)
-                            continue;
-                        if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor) && strictMode)
-                            continue;
-                        if (!AreEqual(material.Field40, royalMaterial.Field40) && strictMode) //reflectivity
-                            continue;
-                        if (!AreEqual(material.Field44, royalMaterial.Field44) && strictMode) //outline index
-                            continue;
-                        if (!AreEqual((byte)material.DrawMethod, (byte)royalMaterial.DrawMethod))
-                            continue;
-                        if (!AreEqual(material.Field49, royalMaterial.Field49))
-                            continue;
-                        if (!AreEqual(material.Field4A, royalMaterial.Field4A) && strictMode)
-                            continue;
-                        if (!AreEqual(material.Field4B, royalMaterial.Field4B))
-                            continue;
-                        if (!AreEqual(material.Field4C, royalMaterial.Field4C) && strictMode)
-                            continue;
-                        if (!AreEqual(material.Field4D, royalMaterial.Field4D)) //highlight blend mode
-                            continue;
-                        if (!AreEqual(material.Field90, royalMaterial.Field90))
-                            continue;
-                        if (!AreEqual(material.Field92, royalMaterial.Field92))
-                            continue;
-                        if (!AreEqual(material.Field94, royalMaterial.Field94))
-                            continue;
-                        if (!AreEqual(material.Field96, royalMaterial.Field96))
-                            continue;
-                        if (!AreEqual(material.Field5C, royalMaterial.Field5C))
-                            continue;
-                        if (!AreEqual(material.Field6C, royalMaterial.Field6C)) //texcoord1
-                            continue;
-                        if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
-                            continue;
-                        if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling) && strictMode)
-                            continue;
-                        if (!AreEqual(material.Field98, royalMaterial.Field98) && strictMode)
-                            continue;
-                        if (!AreAttributesEqual(material, royalMaterial))
-                            continue;
-
-                        return (true, material.Name);
-                    }
-                }
-                catch
-                {
-
-                }
-                
+                return (true, material.Name);
             }
 
             return (false, null);
