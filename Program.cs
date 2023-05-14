@@ -52,14 +52,14 @@ namespace P5MatValidator
 
             foreach ( var material in compareMaterials )
             {
-                var result = CompareMaterial(material, referenceMaterials);
-                if (!result.Item1)
+                (bool isValid, string matchingMaterialName) result = CompareMaterial(material, referenceMaterials);
+                if (!result.isValid)
                 {
                     InvalidMats.Add($"{material.Name}");
                 }
                 else
                 {
-                    validMats.Add($"{material.Name} -> {result.Item2}");
+                    validMats.Add($"{material.Name} -> {result.matchingMaterialName}");
                 }
             }
 
@@ -72,10 +72,8 @@ namespace P5MatValidator
             //Generate Compare Material List 
             List<Material> compareMaterials = GenerateMaterialList(compareModelDir).ToList();
 
-            List<string> matFileNames = Directory.GetFiles($"{referenceMaterialDir}", $"*.gmtd", SearchOption.AllDirectories).ToList();
-            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.gmt", SearchOption.AllDirectories).ToList());
-            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.GFS", SearchOption.AllDirectories).ToList());
-            matFileNames.AddRange(Directory.GetFiles($"{referenceMaterialDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
+            string[] fileExtenstions = {"*.gmtd", "*.gmt", "*.GFS", "*.GMD"};
+            List<string> matFileNames = GetFiles($"{referenceMaterialDir}", fileExtenstions, SearchOption.AllDirectories);
 
             var asSpan = CollectionsMarshal.AsSpan(matFileNames);
 
@@ -207,24 +205,31 @@ namespace P5MatValidator
             string modelDir = args[1];
             string matOutputDir = args[0];
 
-            List<string> gfsFileNames = Directory.GetFiles($"{modelDir}", $"*.GFS", SearchOption.AllDirectories).ToList();
-            gfsFileNames.AddRange(Directory.GetFiles($"{modelDir}", $"*.GMD", SearchOption.AllDirectories).ToList());
+            string[] fileExtensions = { "*.GFS", "*.GMD" };
+            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
 
             var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
 
+            List<Task> tasks = new();
+
             foreach (var file in asSpan)
             {
-                try
+                tasks.Add(Task.Run(() =>
                 {
-                    var gfsFile = LoadModel(file);
+                    try
+                    {
+                        var gfsFile = LoadModel(file);
 
-                    string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
-                    Directory.CreateDirectory(matOutputDir + savePath);
+                        string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
+                        Directory.CreateDirectory(matOutputDir + savePath);
 
-                    gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
-                }
-                catch { }
+                        gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
+                    }
+                    catch { }
+                }));
             }
+
+            Task.WaitAll(tasks.ToArray());
 
             stopwatch.Stop();
             Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
@@ -303,6 +308,18 @@ namespace P5MatValidator
             if (!AreEqual((uint)a, (uint)b)) return false;
 
             return true;
+        }
+
+        static List<string> GetFiles(string path, string[] searchPatterns, SearchOption searchOption)
+        {
+            List<string> files = new List<string>();
+
+            foreach (string pattern in searchPatterns)
+            {
+                files.AddRange(Directory.GetFiles(path, pattern, searchOption).ToList());
+            }
+
+            return files;
         }
     }
 }
