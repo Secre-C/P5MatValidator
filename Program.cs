@@ -11,7 +11,7 @@ namespace P5MatValidator
     {
         public static bool strictMode = false;
         public static bool dumpMode = false;
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length < 2)
             {
@@ -47,27 +47,41 @@ namespace P5MatValidator
             //Get both material lists
             (List<Material> compareMaterials, List<Material> referenceMaterials) = PrepareMaterialLists(args[0], args[1]);
 
-            List<string> InvalidMats = new();
+            (List<string> invalidMats, List<string> validMats) = await CompareAllMaterials(compareMaterials, referenceMaterials);
+
+            PrintResults(args[0], stopwatch, invalidMats, validMats);
+        }
+        static async Task<(List<string>, List<string>)> CompareAllMaterials(List<Material> compareMaterials, List<Material> referenceMaterials)
+        {
+            List<string> invalidMats = new();
             List<string> validMats = new();
 
-            foreach ( var material in compareMaterials )
+            List<Task<(string compareMaterialName, bool isValid, string matchingMaterialName)>> compareTasks = new();
+
+            foreach (var material in compareMaterials)
             {
-                (bool isValid, string matchingMaterialName) result = CompareMaterial(material, referenceMaterials);
+                compareTasks.Add(CompareMaterial(material, referenceMaterials));
+            }
+
+            var results = await Task.WhenAll(compareTasks);
+
+            foreach (var result in results)
+            {
                 if (!result.isValid)
                 {
-                    InvalidMats.Add($"{material.Name}");
+                    invalidMats.Add($"{result.compareMaterialName}");
                 }
                 else
                 {
-                    validMats.Add($"{material.Name} -> {result.matchingMaterialName}");
+                    validMats.Add($"{result.compareMaterialName} -> {result.matchingMaterialName}");
                 }
             }
 
-            PrintResults(args[0], stopwatch, InvalidMats, validMats);
+            return (invalidMats, validMats);
         }
         static (List<Material>, List<Material>) PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
         {
-            List<Material> referenceMaterials = new ();
+            List<Material> referenceMaterials = new();
 
             //Generate Compare Material List 
             List<Material> compareMaterials = GenerateMaterialList(compareModelDir).ToList();
@@ -118,7 +132,7 @@ namespace P5MatValidator
             Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
         }
 
-        static (bool, string) CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
+        static async Task<(string, bool, string)> CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
         {
             foreach (var material in referenceMaterials)
             {
@@ -169,10 +183,10 @@ namespace P5MatValidator
                 if (!AreAttributesEqual(material, royalMaterial))
                     continue;
 
-                return (true, material.Name);
+                return (royalMaterial.Name, true, material.Name);
             }
 
-            return (false, null);
+            return (royalMaterial.Name, false, null);
         }
 
         static IList<Material> GenerateMaterialList(string filePath)
