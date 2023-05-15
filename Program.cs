@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using static GFDLibrary.Api.FlatApi;
@@ -11,6 +12,8 @@ namespace P5MatValidator
     {
         public static bool strictMode = false;
         public static bool dumpMode = false;
+        public static bool megaMat = false;
+        public static int ?megaMatVersion = null;
         static async Task Main(string[] args)
         {
             if (args.Length < 2)
@@ -31,6 +34,15 @@ namespace P5MatValidator
                 {
                     if (args[i].ToLower() == "-strict") strictMode = true;
                     if (args[i].ToLower() == "-dump") dumpMode = true;
+                    if (args[i].ToLower() == "-megamat")
+                    {
+                        megaMat = true;
+                        try
+                        {
+                            megaMatVersion = Int32.Parse(args[i + 1]);
+                        }
+                        catch (IndexOutOfRangeException) { }
+                    }
                 }
             }
 
@@ -38,20 +50,71 @@ namespace P5MatValidator
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            if (dumpMode)
+            if (megaMat)
+            {
+                await CreateBenchmarkMat(args[0], args[1]);
+                return;
+            }
+            else if (dumpMode)
             {
                 DumpMats(args, stopwatch);
                 return;
             }
 
             //Get both material lists
-            (List<Material> compareMaterials, List<Material> referenceMaterials) = PrepareMaterialLists(args[0], args[1]);
+            (List<Material> compareMaterials, List<Material> referenceMaterials) = await PrepareMaterialLists(args[0], args[1]);
 
             (List<string> invalidMats, List<string> validMats) = await CompareAllMaterials(compareMaterials, referenceMaterials);
 
             PrintResults(args[0], stopwatch, invalidMats, validMats);
         }
-        static async Task<(List<string>, List<string>)> CompareAllMaterials(List<Material> compareMaterials, List<Material> referenceMaterials)
+        static async Task<(List<Material>, List<Material>)> PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
+        {
+            //Generate Compare Material List 
+            Task<List<Material>> compareMaterials = GenerateMaterialList(compareModelDir);
+
+            string[] fileExtenstions = {"*.gmtd", "*.gmt", "*.GFS", "*.GMD"};
+            List<string> matFileNames = GetFiles($"{referenceMaterialDir}", fileExtenstions, SearchOption.AllDirectories);
+
+            List<Material> referenceMaterials = new();
+
+            foreach (string matFile in matFileNames)
+            {
+                try
+                {
+                    referenceMaterials.AddRange(await GenerateMaterialList(matFile));
+                }
+                catch { }
+            }
+
+            return(await compareMaterials, referenceMaterials);
+        }
+
+        static async Task<List<Material>> GenerateMaterialList(string filePath)
+        {
+            if (Path.GetExtension(filePath).ToLower() == ".gfs" || Path.GetExtension(filePath).ToLower() == ".gmd")
+            {
+                return (List<Material>)LoadModel(filePath).Materials.Materials;
+            }
+            else if (Path.GetExtension(filePath).ToLower() == ".gmtd")
+            {
+                var matDict = (MaterialDictionary)Resource.Load(filePath);
+                return (List<Material>)matDict.Materials;
+            }
+            else if (Path.GetExtension(filePath).ToLower() == ".gmt")
+            {
+                var mat = (Material)Resource.Load(filePath);
+                List<Material> materialList = new List<Material>
+                {
+                    mat
+                };
+
+                return materialList;
+            }
+            else
+                return new List<Material>();
+        }
+        static async Task<(List<string>, List<string>)> CompareAllMaterials(IList<Material> compareMaterials, List<Material> referenceMaterials)
         {
             List<string> invalidMats = new();
             List<string> validMats = new();
@@ -78,58 +141,6 @@ namespace P5MatValidator
             }
 
             return (invalidMats, validMats);
-        }
-        static (List<Material>, List<Material>) PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
-        {
-            List<Material> referenceMaterials = new();
-
-            //Generate Compare Material List 
-            List<Material> compareMaterials = GenerateMaterialList(compareModelDir).ToList();
-
-            string[] fileExtenstions = {"*.gmtd", "*.gmt", "*.GFS", "*.GMD"};
-            List<string> matFileNames = GetFiles($"{referenceMaterialDir}", fileExtenstions, SearchOption.AllDirectories);
-
-            var asSpan = CollectionsMarshal.AsSpan(matFileNames);
-
-            foreach (string matFile in asSpan)
-            {
-                try
-                {
-                    referenceMaterials.AddRange(GenerateMaterialList(matFile));
-                }
-                catch { }
-            }
-
-            return(compareMaterials, referenceMaterials);
-        }
-        static void PrintResults(string filePath, Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
-        {
-            Console.Clear();
-
-            Console.WriteLine("\n===============================================");
-            Console.WriteLine($"{Path.GetFileName(filePath)}:");
-
-            Console.WriteLine("===============================================");
-
-            if (!strictMode)
-                Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
-            else
-                Console.WriteLine($"Invalid Mats (Strict Mode) ({InvalidMats.Count}):\n");
-
-            foreach (var mat in InvalidMats)
-                Console.WriteLine(mat);
-
-            Console.WriteLine("===============================================");
-            Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
-
-            foreach (var mat in validMats)
-                Console.WriteLine(mat);
-
-
-            Console.WriteLine("===============================================");
-
-            stopwatch.Stop();
-            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
         }
 
         static async Task<(string, bool, string)> CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
@@ -188,72 +199,37 @@ namespace P5MatValidator
 
             return (royalMaterial.Name, false, null);
         }
-
-        static IList<Material> GenerateMaterialList(string filePath)
+        static void PrintResults(string filePath, Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
         {
-            if (Path.GetExtension(filePath).ToLower() == ".gfs" || Path.GetExtension(filePath).ToLower() == ".gmd")
-            {
-                return LoadModel(filePath).Materials.Materials;
-            }
-            else if (Path.GetExtension(filePath).ToLower() == ".gmtd")
-            {
-                var matDict = (MaterialDictionary)Resource.Load(filePath);
-                return matDict.Materials;
-            }
-            else if (Path.GetExtension(filePath).ToLower() == ".gmt")
-            {
-                var mat = (Material)Resource.Load(filePath);
-                IList<Material> materialList = new List<Material>
-                {
-                    mat
-                };
+            Console.Clear();
 
-                return materialList;
-            }
+            Console.WriteLine("\n===============================================");
+            Console.WriteLine($"{Path.GetFileName(filePath)}:");
+
+            Console.WriteLine("===============================================");
+
+            if (!strictMode)
+                Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
             else
-                return new List<Material>();
-        }
+                Console.WriteLine($"Invalid Mats (Strict Mode) ({InvalidMats.Count}):\n");
 
-        static void DumpMats(string[] args, Stopwatch stopwatch)
-        {
-            string modelDir = args[1];
-            string matOutputDir = args[0];
+            Console.ForegroundColor = ConsoleColor.Red;
+            foreach (var mat in InvalidMats)
+                Console.WriteLine(mat);
 
-            string[] fileExtensions = { "*.GFS", "*.GMD" };
-            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("===============================================");
+            Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
 
-            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
+            Console.ForegroundColor = ConsoleColor.Green;
+            foreach (var mat in validMats)
+                Console.WriteLine(mat);
 
-            List<Task> tasks = new();
-
-            foreach (var file in asSpan)
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    try
-                    {
-                        var gfsFile = LoadModel(file);
-
-                        string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
-                        Directory.CreateDirectory(matOutputDir + savePath);
-
-                        gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
-                    }
-                    catch { }
-                }));
-            }
-
-            Task.WaitAll(tasks.ToArray());
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("===============================================");
 
             stopwatch.Stop();
             Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
-
-            return;
-        }
-
-        static bool AreEqual(object a, object b)
-        {
-            return Equals(a, b);
         }
 
         static bool AreAttributesEqual(Material a, Material b)
@@ -263,7 +239,7 @@ namespace P5MatValidator
             else if (!a.Flags.HasFlag(MaterialFlags.HasAttributes) || !b.Flags.HasFlag(MaterialFlags.HasAttributes))
                 return false;
 
-            if (a.Attributes.Count != b.Attributes.Count) 
+            if (a.Attributes.Count != b.Attributes.Count)
                 return false;
 
             bool typeMatchFound = false;
@@ -279,7 +255,7 @@ namespace P5MatValidator
                     }
                 }
 
-                if (!typeMatchFound) 
+                if (!typeMatchFound)
                     return false;
 
                 typeMatchFound = false;
@@ -334,6 +310,74 @@ namespace P5MatValidator
             }
 
             return files;
+        }
+
+        static void DumpMats(string[] args, Stopwatch stopwatch)
+        {
+            string modelDir = args[1];
+            string matOutputDir = args[0];
+
+            string[] fileExtensions = { "*.GFS", "*.GMD" };
+            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
+
+            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
+
+            List<Task> tasks = new();
+
+            foreach (var file in asSpan)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        var gfsFile = LoadModel(file);
+
+                        string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
+                        Directory.CreateDirectory(matOutputDir + savePath);
+
+                        gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
+                    }
+                    catch { }
+                }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            stopwatch.Stop();
+            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
+
+            return;
+        }
+        static async Task CreateBenchmarkMat(string modelsDir, string outputFilePath)
+        {
+            Console.WriteLine("Creating Benchmark Mat...");
+
+            var benchmarkMatDict = new MaterialDictionary();
+
+            string[] pattern = { "*.GFS", "*.GMD" };
+
+            List<string> modelPaths = GetFiles(modelsDir, pattern, SearchOption.AllDirectories);
+
+            foreach (string modelPath in modelPaths)
+            {
+                try
+                {
+                    var matList = await GenerateMaterialList(modelPath);
+                    foreach (var mat in matList)
+                    {
+                        if (mat.Version == megaMatVersion || megaMatVersion == null)
+                            benchmarkMatDict.Add(mat);
+                    }
+                }
+                catch { }
+            }
+
+            benchmarkMatDict.Save(outputFilePath);
+        }
+
+        static bool AreEqual(object a, object b)
+        {
+            return Equals(a, b);
         }
     }
 }
