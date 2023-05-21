@@ -1,8 +1,7 @@
 {
   "profiles": {
     "P5MatValidator": {
-      "commandName": "Project",
-      "commandLineArgs": "\"E:\\ModsnStuff\\P5 Modding maybe\\data.cpk_unpacked\\model\\field_tex\\f000_100_0.GFS\" \"E:\\ModsnStuff\\P5 Modding maybe\\data.cpk_unpacked\\model\" -strict"
+      "commandName": "Project"
     }
   }
 }

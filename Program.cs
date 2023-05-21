@@ -12,17 +12,18 @@ namespace P5MatValidator
     {
         public static bool strictMode = false;
         public static bool dumpMode = false;
-        public static bool megaMat = false;
-        public static int ?megaMatVersion = null;
+        public static bool combineMats = false;
+        public static int ?matVersion = null;
         static async Task Main(string[] args)
         {
             if (args.Length < 2)
             {
                 Console.WriteLine("P5MatValidator By SecreC. Compares materials with every material in Royal field GFS, and returns all that aren't identical\n" +
-                    "Usage: <Path to file to compare> <Path to a gmtd/gmt dump> <modes>\n" +
+                    "Usage: <Input model or model directory> <dump directory or output> <Mode>\n" +
                     "Modes:\n" +
                     "\t-strict; values less likely to cause crashes will be compared\n" +
-                    "\t-dump; dumps gmtds of all models from the second arg to the path in the first\n");
+                    "\t-dump; dumps gmtds of all models in the first arg to the path in the second\n" +
+                    "\t-combine <gfd version number (dec)>; combines all materials in first arg subdirectories and outputs a single material to the output path");
 
                 Console.ReadKey();
                 return;
@@ -34,12 +35,12 @@ namespace P5MatValidator
                 {
                     if (args[i].ToLower() == "-strict") strictMode = true;
                     if (args[i].ToLower() == "-dump") dumpMode = true;
-                    if (args[i].ToLower() == "-megamat")
+                    if (args[i].ToLower() == "-combine")
                     {
-                        megaMat = true;
+                        combineMats = true;
                         try
                         {
-                            megaMatVersion = Int32.Parse(args[i + 1]);
+                            matVersion = Int32.Parse(args[i + 1]);
                         }
                         catch (IndexOutOfRangeException) { }
                     }
@@ -50,9 +51,9 @@ namespace P5MatValidator
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            if (megaMat)
+            if (combineMats)
             {
-                await CreateBenchmarkMat(args[0], args[1]);
+                await CreateCombinedMat(args[0], args[1]);
                 return;
             }
             else if (dumpMode)
@@ -208,6 +209,15 @@ namespace P5MatValidator
 
             Console.WriteLine("===============================================");
 
+            Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            foreach (var mat in validMats)
+                Console.WriteLine(mat);
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("===============================================");
+
             if (!strictMode)
                 Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
             else
@@ -219,17 +229,105 @@ namespace P5MatValidator
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("===============================================");
-            Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            foreach (var mat in validMats)
-                Console.WriteLine(mat);
-
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("===============================================");
 
             stopwatch.Stop();
             Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
+        }
+
+        static List<string> GetFiles(string path, string[] searchPatterns, SearchOption searchOption)
+        {
+            List<string> files = new List<string>();
+
+            foreach (string pattern in searchPatterns)
+            {
+                files.AddRange(Directory.GetFiles(path, pattern, searchOption).ToList());
+            }
+
+            return files;
+        }
+
+        static void DumpMats(string[] args, Stopwatch stopwatch)
+        {
+            string modelDir = args[0];
+            string matOutputDir = args[1];
+
+            string[] fileExtensions = { "*.GFS", "*.GMD" };
+            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
+
+            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
+
+            List<Task> tasks = new();
+
+            foreach (var file in asSpan)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        var gfsFile = LoadModel(file);
+
+                        string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
+                        Directory.CreateDirectory(matOutputDir + savePath);
+
+                        gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
+                    }
+                    catch { }
+                }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            stopwatch.Stop();
+            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
+
+            return;
+        }
+        static async Task CreateCombinedMat(string modelsDir, string outputFilePath)
+        {
+            Console.WriteLine("Combining Materials...");
+
+            var combinedMatDict = new MaterialDictionary();
+
+            string[] pattern = { "*.GFS", "*.GMD", "*.gmt", "*.gmtd" };
+
+            List<string> modelPaths = GetFiles(modelsDir, pattern, SearchOption.AllDirectories);
+
+            foreach (string modelPath in modelPaths)
+            {
+                try
+                {
+                    var matList = await GenerateMaterialList(modelPath);
+                    foreach (var mat in matList)
+                    {
+                        if (mat.Version == matVersion || matVersion == null)
+                            combinedMatDict.Add(mat);
+                    }
+                }
+                catch { }
+            }
+
+            combinedMatDict.Save(outputFilePath);
+        }
+
+        static bool AreEqual(object a, object b)
+        {
+            return Equals(a, b);
+        }
+        static bool AreColorsEqual(Vector4 a, Vector4 b)
+        {
+            if (!AreEqual(a.X, b.X)) return false;
+            if (!AreEqual(a.Y, b.Y)) return false;
+            if (!AreEqual(a.Z, b.Z)) return false;
+            if (!AreEqual(a.W, b.W)) return false;
+
+            return true;
+        }
+
+        static bool AreMatFlagsEqual(MaterialFlags a, MaterialFlags b)
+        {
+            if (!AreEqual((uint)a, (uint)b)) return false;
+
+            return true;
         }
 
         static bool AreAttributesEqual(Material a, Material b)
@@ -282,102 +380,6 @@ namespace P5MatValidator
             }
 
             return true;
-        }
-        static bool AreColorsEqual(Vector4 a, Vector4 b)
-        {
-            if (!AreEqual(a.X, b.X)) return false;
-            if (!AreEqual(a.Y, b.Y)) return false;
-            if (!AreEqual(a.Z, b.Z)) return false;
-            if (!AreEqual(a.W, b.W)) return false;
-
-            return true;
-        }
-
-        static bool AreMatFlagsEqual(MaterialFlags a, MaterialFlags b)
-        {
-            if (!AreEqual((uint)a, (uint)b)) return false;
-
-            return true;
-        }
-
-        static List<string> GetFiles(string path, string[] searchPatterns, SearchOption searchOption)
-        {
-            List<string> files = new List<string>();
-
-            foreach (string pattern in searchPatterns)
-            {
-                files.AddRange(Directory.GetFiles(path, pattern, searchOption).ToList());
-            }
-
-            return files;
-        }
-
-        static void DumpMats(string[] args, Stopwatch stopwatch)
-        {
-            string modelDir = args[1];
-            string matOutputDir = args[0];
-
-            string[] fileExtensions = { "*.GFS", "*.GMD" };
-            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
-
-            var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
-
-            List<Task> tasks = new();
-
-            foreach (var file in asSpan)
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    try
-                    {
-                        var gfsFile = LoadModel(file);
-
-                        string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
-                        Directory.CreateDirectory(matOutputDir + savePath);
-
-                        gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
-                    }
-                    catch { }
-                }));
-            }
-
-            Task.WaitAll(tasks.ToArray());
-
-            stopwatch.Stop();
-            Console.WriteLine($"\nElapsed Time: {stopwatch.Elapsed}");
-
-            return;
-        }
-        static async Task CreateBenchmarkMat(string modelsDir, string outputFilePath)
-        {
-            Console.WriteLine("Creating Benchmark Mat...");
-
-            var benchmarkMatDict = new MaterialDictionary();
-
-            string[] pattern = { "*.GFS", "*.GMD" };
-
-            List<string> modelPaths = GetFiles(modelsDir, pattern, SearchOption.AllDirectories);
-
-            foreach (string modelPath in modelPaths)
-            {
-                try
-                {
-                    var matList = await GenerateMaterialList(modelPath);
-                    foreach (var mat in matList)
-                    {
-                        if (mat.Version == megaMatVersion || megaMatVersion == null)
-                            benchmarkMatDict.Add(mat);
-                    }
-                }
-                catch { }
-            }
-
-            benchmarkMatDict.Save(outputFilePath);
-        }
-
-        static bool AreEqual(object a, object b)
-        {
-            return Equals(a, b);
         }
     }
 }
