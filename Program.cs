@@ -65,9 +65,9 @@ namespace P5MatValidator
             //Get both material lists
             (List<Material> compareMaterials, List<Material> referenceMaterials) = await PrepareMaterialLists(args[0], args[1]);
 
-            (List<string> invalidMats, List<string> validMats) = await CompareAllMaterials(compareMaterials, referenceMaterials);
+            (List<string> invalidMats, List<string> validMats, List<string> sameNameMats) = await CompareAllMaterials(compareMaterials, referenceMaterials);
 
-            PrintResults(args[0], stopwatch, invalidMats, validMats);
+            PrintResults(args[0], stopwatch, invalidMats, validMats, sameNameMats);
         }
         static async Task<(List<Material>, List<Material>)> PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
         {
@@ -115,12 +115,13 @@ namespace P5MatValidator
             else
                 return new List<Material>();
         }
-        static async Task<(List<string>, List<string>)> CompareAllMaterials(IList<Material> compareMaterials, List<Material> referenceMaterials)
+        static async Task<(List<string>, List<string>, List<string>)> CompareAllMaterials(IList<Material> compareMaterials, List<Material> referenceMaterials)
         {
             List<string> invalidMats = new();
             List<string> validMats = new();
+            List<string> sameNameMats = new();
 
-            List<Task<(string compareMaterialName, bool isValid, string matchingMaterialName)>> compareTasks = new();
+            List<Task<(string compareMaterialName, byte isValid, string matchingMaterialName)>> compareTasks = new();
 
             foreach (var material in compareMaterials)
             {
@@ -131,23 +132,35 @@ namespace P5MatValidator
 
             foreach (var result in results)
             {
-                if (!result.isValid)
+                if (result.isValid == 0) //invalid
                 {
                     invalidMats.Add($"{result.compareMaterialName}");
                 }
-                else
+                else if (result.isValid == 2) //matching name
+                {
+                    sameNameMats.Add($"{result.compareMaterialName}");
+                }
+                else //valid
                 {
                     validMats.Add($"{result.compareMaterialName} -> {result.matchingMaterialName}");
                 }
             }
 
-            return (invalidMats, validMats);
+            return (invalidMats, validMats, sameNameMats);
         }
 
-        static async Task<(string, bool, string)> CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
+        static async Task<(string, byte, string?)> CompareMaterial(Material royalMaterial, List<Material> referenceMaterials)
         {
+            byte validity = 0;
+            string? matchingMat = null;
+
             foreach (var material in referenceMaterials)
             {
+                if (material.Name == royalMaterial.Name)
+                {
+                    validity = 2;
+                    matchingMat = material.Name;
+                }
                 if (!AreMatFlagsEqual(material.Flags, royalMaterial.Flags))
                     continue;
                 if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor) && strictMode)
@@ -195,15 +208,18 @@ namespace P5MatValidator
                 if (!AreAttributesEqual(material, royalMaterial))
                     continue;
 
-                return (royalMaterial.Name, true, material.Name);
+                validity = 1;
+                matchingMat = material.Name;
+                break;
             }
 
-            return (royalMaterial.Name, false, null);
+            return (royalMaterial.Name, validity, matchingMat);
         }
-        static void PrintResults(string filePath, Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats)
+        static void PrintResults(string filePath, Stopwatch stopwatch, List<string> InvalidMats, List<string> validMats, List<string> sameNameMats)
         {
             Console.Clear();
 
+            //Valid Mats
             Console.WriteLine("\n===============================================");
             Console.WriteLine($"{Path.GetFileName(filePath)}:");
 
@@ -218,6 +234,20 @@ namespace P5MatValidator
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("===============================================");
 
+            //Matching Names
+            if (!strictMode)
+                Console.WriteLine($"Invalid Mats With Matching Names ({sameNameMats.Count}):\n");
+            else
+                Console.WriteLine($"Invalid Mats With Matching Names (Strict Mode) ({sameNameMats.Count}):\n");
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            foreach (var mat in sameNameMats)
+                Console.WriteLine(mat);
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("===============================================");
+
+            //Invalid Mats
             if (!strictMode)
                 Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
             else
