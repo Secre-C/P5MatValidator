@@ -123,7 +123,7 @@ namespace P5MatValidator
         internal static async Task<(MaterialInfo, List<MaterialInfo>)> PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
         {
             //Generate Compare Material List 
-            Task<MaterialInfo> compareMaterials = GenerateMaterialList(compareModelDir);
+            Task<MaterialInfo> compareMaterials = GenerateMaterialList(compareModelDir, referenceMaterialDir);
 
             //Search all files in refMatDir for mats
             string[] fileExtenstions = {"*.gmtd", "*.gmt", "*.GFS", "*.GMD"};
@@ -135,7 +135,7 @@ namespace P5MatValidator
             {
                 try
                 {
-                    referenceMaterials.Add(await GenerateMaterialList(matFile));
+                    referenceMaterials.Add(await GenerateMaterialList(matFile, referenceMaterialDir));
                 }
                 catch 
                 {
@@ -146,7 +146,7 @@ namespace P5MatValidator
             return(await compareMaterials, referenceMaterials);
         }
 
-        internal static async Task<MaterialInfo> GenerateMaterialList(string filePath)
+        internal static async Task<MaterialInfo> GenerateMaterialList(string filePath, string referenceMaterialDir)
         {
             MaterialInfo materialInfo = new();
 
@@ -154,7 +154,7 @@ namespace P5MatValidator
             if (Path.GetExtension(filePath).ToLower() == ".gfs" || Path.GetExtension(filePath).ToLower() == ".gmd")
             {
                 materialInfo.materials = (List<Material>)LoadModel(filePath).Materials.Materials;
-                materialInfo.fileName = Path.GetFileName(filePath);
+                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
 
                 return materialInfo;
             }
@@ -162,7 +162,7 @@ namespace P5MatValidator
             {
                 var matDict = (MaterialDictionary)Resource.Load(filePath);
                 materialInfo.materials = (List<Material>)matDict.Materials;
-                materialInfo.fileName = Path.GetFileName(filePath);
+                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
 
                 return materialInfo;
             }
@@ -175,7 +175,7 @@ namespace P5MatValidator
                     mat
                 };
 
-                materialInfo.fileName = Path.GetFileName(filePath);
+                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
 
                 return materialInfo;
             }

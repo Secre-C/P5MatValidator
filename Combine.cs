@@ -25,7 +25,7 @@ namespace P5MatValidator
             {
                 try
                 {
-                    var matList = await GenerateMaterialList(modelPath);
+                    var matList = await GenerateMaterialList(modelsDir, modelPath);
                     foreach (var mat in matList.materials)
                     {
                         if (mat.Version == matVersion || matVersion == null)
