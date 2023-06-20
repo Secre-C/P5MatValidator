@@ -14,6 +14,11 @@ using static P5MatValidator.Search;
 
 namespace P5MatValidator
 {
+    public struct MaterialInfo
+    {
+        internal List<Material> materials;
+        internal string? fileName;
+    }
     internal class Program
     {
         public static Mode mode = 0;
@@ -29,11 +34,6 @@ namespace P5MatValidator
             combine = 8,
             search = 16,
         }
-        internal struct MaterialInfo
-        {
-            internal List<Material> materials;
-            internal string? fileName;
-        }
         static void ShowProgramUsage()
         {
             Console.WriteLine("P5MatValidator By SecreC.\n\n" +
@@ -43,7 +43,7 @@ namespace P5MatValidator
                     "\t-strict; values less likely to cause crashes will be compared\n" +
                     "\t-dump; dumps gmtds of all models in the first arg to the path in the second\n" +
                     "\t-combine <gfd version number (decimal)>; combines all materials in first arg subdirectories and outputs a single material to the output path\n" +
-                    "\t-search <material dump path> <<material member> <value>>...; search for a material of a specific description\n");
+                    "\t-search <material dump path> <<material member> <value>>...; search for a material of a specific description.\nExample:>P5MatValidator.exe ../mats -search bit0 1 bit1 1 hasdiffusemap 1 hashighlightmap 0 texcoord1 0xFFEB9FF8 outlineindex 0.1 drawmethod 2 hasattributes 4\n");
 
             Console.ReadKey();
             return;
@@ -92,7 +92,7 @@ namespace P5MatValidator
             }
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             //Process Arguments and set modes
             ProcessArgs(args);
@@ -125,7 +125,7 @@ namespace P5MatValidator
             }
             else if ((mode & Mode.search) > 0)
             {
-                SearchForMaterial(args);
+                PrintSearchResults(await SearchForMaterial(args));
                 return;
             }
         }

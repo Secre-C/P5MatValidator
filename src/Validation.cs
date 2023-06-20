@@ -175,7 +175,7 @@ namespace P5MatValidator
                         continue;
 
                     validity = 1;
-                    matchingMat = material.Name;
+                    matchingMat = $"{material.Name} ({materialInfo.fileName})";
                     break;
                 }
 
