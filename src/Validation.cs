@@ -11,7 +11,7 @@ namespace P5MatValidator
 {
     internal class Validation
     {
-        internal static async void ValidateMaterials(string inputModelPath, string referenceMaterialPath)
+        internal static async Task<(List<string> invalidMats, List<string> validMats, List<string> sameNameMats)> ValidateMaterials(string inputModelPath, string referenceMaterialPath)
         {
             //Get both material lists
             (MaterialInfo compareMaterials, List<MaterialInfo> referenceMaterials) = await PrepareMaterialLists(inputModelPath, referenceMaterialPath);
@@ -21,6 +21,8 @@ namespace P5MatValidator
 
             //print results
             PrintResults(inputModelPath, invalidMats, validMats, sameNameMats);
+
+            return (invalidMats, validMats, sameNameMats);
         }
         internal static void PrintResults(string filePath, List<string> InvalidMats, List<string> validMats, List<string> sameNameMats)
         {
@@ -127,29 +129,36 @@ namespace P5MatValidator
                         validity = 2;
                         matchingMat = materialInfo.fileName;
                     }
+                    if ((mode & Mode.strict) > 0) //check these in strict mode
+                    {
+                        if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor))
+                            continue;
+                        if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor))
+                            continue;
+                        if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor))
+                            continue;
+                        if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor))
+                            continue;
+                        if (!AreEqual(material.Field40, royalMaterial.Field40)) //reflectivity
+                            continue;
+                        if (!AreEqual(material.Field44, royalMaterial.Field44)) //outline index
+                            continue;
+                        if (!AreEqual(material.Field4A, royalMaterial.Field4A))
+                            continue;
+                        if (!AreEqual(material.Field4C, royalMaterial.Field4C))
+                            continue;
+                        if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling))
+                            continue;
+                        if (!AreEqual(material.Field98, royalMaterial.Field98))
+                            continue;
+                    }
                     if (!AreMatFlagsEqual(material.Flags, royalMaterial.Flags))
-                        continue;
-                    if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor) && (mode & Mode.strict) > 0)
-                        continue;
-                    if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor) && (mode & Mode.strict) > 0)
-                        continue;
-                    if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor) && (mode & Mode.strict) > 0)
-                        continue;
-                    if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor) && (mode & Mode.strict) > 0)
-                        continue;
-                    if (!AreEqual(material.Field40, royalMaterial.Field40) && (mode & Mode.strict) > 0) //reflectivity
-                        continue;
-                    if (!AreEqual(material.Field44, royalMaterial.Field44) && (mode & Mode.strict) > 0) //outline index
                         continue;
                     if (!AreEqual((byte)material.DrawMethod, (byte)royalMaterial.DrawMethod))
                         continue;
                     if (!AreEqual(material.Field49, royalMaterial.Field49))
                         continue;
-                    if (!AreEqual(material.Field4A, royalMaterial.Field4A) && (mode & Mode.strict) > 0)
-                        continue;
                     if (!AreEqual(material.Field4B, royalMaterial.Field4B))
-                        continue;
-                    if (!AreEqual(material.Field4C, royalMaterial.Field4C) && (mode & Mode.strict) > 0)
                         continue;
                     if (!AreEqual(material.Field4D, royalMaterial.Field4D)) //highlight blend mode
                         continue;
@@ -166,10 +175,6 @@ namespace P5MatValidator
                     if (!AreEqual(material.Field6C, royalMaterial.Field6C)) //texcoord1
                         continue;
                     if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
-                        continue;
-                    if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling) && (mode & Mode.strict) > 0)
-                        continue;
-                    if (!AreEqual(material.Field98, royalMaterial.Field98) && (mode & Mode.strict) > 0)
                         continue;
                     if (!AreAttributesEqual(material, royalMaterial))
                         continue;

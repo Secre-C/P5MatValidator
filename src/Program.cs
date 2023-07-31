@@ -11,6 +11,7 @@ using static P5MatValidator.Utils;
 using static P5MatValidator.Combine;
 using static P5MatValidator.Dump;
 using static P5MatValidator.Search;
+using static P5MatValidator.Convert;
 
 namespace P5MatValidator
 {
@@ -28,11 +29,12 @@ namespace P5MatValidator
 
         internal enum Mode
         {
-            validate = 1,
-            strict = 2,
-            dump = 4,
-            combine = 8,
-            search = 16,
+            validate = 0x1,
+            strict = 0x2,
+            dump = 0x4,
+            combine = 0x8,
+            search = 0x10,
+            convert = 0x20,
         }
         static void ShowProgramUsage()
         {
@@ -55,6 +57,7 @@ namespace P5MatValidator
             {
                 if (args[i] == "-validate") mode |= Mode.validate;
                 if (args[i] == "-strict") mode |= Mode.strict;
+                if (args[i] == "-convert") mode |= Mode.convert;
                 if (args[i] == "-dump") mode |= Mode.dump;
                 if (args[i] == "-search") mode |= Mode.search;
                 if (args[i] == "-combine")
@@ -110,7 +113,11 @@ namespace P5MatValidator
             //run commands based on 
             if ((mode & Mode.validate) > 0)
             {
-                ValidateMaterials(args[0], args[1]);
+                var results = await ValidateMaterials(args[0], args[1]);
+
+                if ((Mode.convert & mode) > 0)
+                    ConvertInvalidMaterialsToPreset(args[0], args[2], results.invalidMats, results.sameNameMats);
+
                 return;
             }
             else if ((mode & Mode.combine) > 0)
