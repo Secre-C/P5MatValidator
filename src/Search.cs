@@ -9,6 +9,7 @@ using static GFDLibrary.Api.FlatApi;
 using GFDLibrary.Materials;
 using GFDLibrary;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 
 namespace P5MatValidator
 {
@@ -44,7 +45,27 @@ namespace P5MatValidator
                 {
                     for (int i = 2; i < args.Length; i += 2)
                     {
-                        doesMaterialHaveMatchingMember = CompareMaterialMemberValue(args[i], args[i + 1], material);
+                        bool parsable = false;
+                        byte texcoordSearch = 0;
+
+                        try
+                        {
+                            parsable = Byte.TryParse(args[i + 2], out texcoordSearch);
+                        }
+                        catch (IndexOutOfRangeException)
+                        {
+
+                        }
+
+                        if (parsable)
+                        {
+                            doesMaterialHaveMatchingMember = CompareMaterialMemberValue(args[i], args[i + 1], material, texcoordSearch);
+                            i++;
+                        }
+                        else
+                        {
+                            doesMaterialHaveMatchingMember = CompareMaterialMemberValue(args[i], args[i + 1], material);
+                        }
 
                         if (!doesMaterialHaveMatchingMember) break;
                     }
@@ -89,6 +110,11 @@ namespace P5MatValidator
         }
 
         static bool CompareMaterialMemberValue(string materialMember, string value, Material material)
+        {
+            return CompareMaterialMemberValue(materialMember, value, material, 0);
+        }
+
+        static bool CompareMaterialMemberValue(string materialMember, string value, Material material, byte texcoordSearchNum)
         {
             //Material Flags
             if (materialMember.ToLower() == "name")
@@ -184,9 +210,27 @@ namespace P5MatValidator
             if (materialMember.ToLower() == "field5c")
                 return material.Field5C == UInt32.Parse(value);
             if (materialMember.ToLower() == "texcoord1" || materialMember.ToLower() == "field6c")
-                return material.Field6C == ParseTexcoord(value);
+            {
+                if (texcoordSearchNum != 0)
+                {
+                    return FindReducedTexcoord(material.Field6C, ParseTexcoord(value), texcoordSearchNum);
+                }
+                else
+                {
+                    return material.Field6C == ParseTexcoord(value);
+                }
+            }
             if (materialMember.ToLower() == "texcoord2" || materialMember.ToLower() == "field70")
-                return material.Field70 == ParseTexcoord(value);
+            {
+                if (texcoordSearchNum != 0)
+                {
+                    return FindReducedTexcoord(material.Field70, ParseTexcoord(value), texcoordSearchNum);
+                }
+                else
+                {
+                    return material.Field70 == ParseTexcoord(value);
+                }
+            }
             if (materialMember.ToLower() == "disablebackfaceculling")
                 return material.DisableBackfaceCulling == UInt32.Parse(value);
             if (materialMember.ToLower() == "field98")
@@ -195,6 +239,20 @@ namespace P5MatValidator
             Console.WriteLine($"Material member \"{materialMember}\" is not a valid member");
             return false;
         }
+
+        static bool FindReducedTexcoord(uint compareValue, uint inputValue, uint keepMinimum)
+        {
+            if (compareValue == inputValue)
+                return true;
+
+            var compareTexcoord = new Texcoord(compareValue);
+
+            if (compareTexcoord.TestTexcoord(inputValue, keepMinimum))
+                return true;
+
+            return false;
+        }
+
         static UInt32 ParseTexcoord(string hexString)
         {
             if (hexString.StartsWith("0x"))
@@ -243,6 +301,103 @@ namespace P5MatValidator
 
             return false;
 
+        }
+    }
+
+    class Texcoord
+    {
+        internal uint Raw { get; }
+        private byte Diffuse { get; }
+        private byte Normal { get; }
+        private byte Specular { get; }
+        private byte Reflection { get; }
+        private byte Highlight { get; }
+        private byte Glow { get; }
+        private byte Night { get; }
+        private byte Detail { get; }
+        private byte Shadow { get; }
+
+        internal Texcoord(uint value)
+        {
+            Raw = value;
+            Diffuse = (byte)(value & 0x7);
+            Normal = (byte)((value >> 3) & 0x7);
+            Specular = (byte)((value >> 6) & 0x7);
+            Reflection = (byte)((value >> 9) & 0x7);
+            Highlight = (byte)((value >> 12) & 0x7);
+            Glow = (byte)((value >> 15) & 0x7);
+            Night = (byte)((value >> 18) & 0x7);
+            Detail = (byte)((value >> 21) & 0x7);
+            Shadow = (byte)((value >> 24) & 0x7);
+        }
+
+        internal bool TestTexcoord(Texcoord inputTexcoord, uint accuracy)
+        {
+            int matchingCoords = 0;
+
+            Func<byte, byte, int> texCompare = (byte op1, byte op2) =>
+            {
+                if (op1 == op2 && op2 != 7)
+                    return 1;
+                else if (op1 == 7)
+                    return 0;
+                else
+                    return 2;
+            };
+
+            var cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
+            if (cDiffuse == 2)
+                return false;
+            matchingCoords += cDiffuse;
+
+            var cNormal = texCompare(this.Normal, inputTexcoord.Normal);
+            if (cNormal == 2)
+                return false;
+            matchingCoords += cNormal;
+
+            var cSpecular = texCompare(this.Specular, inputTexcoord.Specular);
+            if (cSpecular == 2)
+                return false;
+            matchingCoords += cSpecular;
+
+            var cReflection = texCompare(this.Reflection, inputTexcoord.Reflection);
+            if (cReflection == 2)
+                return false;
+            matchingCoords += cReflection;
+
+            var cHighlight = texCompare(this.Highlight, inputTexcoord.Highlight);
+            if (cHighlight == 2)
+                return false;
+            matchingCoords += cHighlight;
+
+            var cGlow = texCompare(this.Glow, inputTexcoord.Glow);
+            if (cGlow == 2)
+                return false;
+            matchingCoords += cGlow;
+
+            var cNight = texCompare(this.Night, inputTexcoord.Night);
+            if (cNight == 2)
+                return false;
+            matchingCoords += cNight;
+
+            var cDetail = texCompare(this.Detail, inputTexcoord.Detail);
+            if (cDetail == 2)
+                return false;
+            matchingCoords += cDetail;
+
+            var cShadow = texCompare(this.Shadow, inputTexcoord.Shadow);
+            if (cShadow == 2)
+                return false;
+            matchingCoords += cShadow;
+
+            return matchingCoords >= accuracy;
+        }
+
+        internal bool TestTexcoord(uint value, uint accuracy)
+        {
+            Texcoord inputTexcoord = new Texcoord(value);
+
+            return TestTexcoord(inputTexcoord, accuracy);
         }
     }
 }

@@ -8,6 +8,7 @@ using static P5MatValidator.Program;
 using static GFDLibrary.Api.FlatApi;
 using GFDLibrary;
 using System.Drawing;
+using System.Xml.Linq;
 
 namespace P5MatValidator
 {
@@ -24,27 +25,28 @@ namespace P5MatValidator
 
             var modelFile = LoadModel(modelPath);
 
-            string diffuseMapName = "pls replace";
-
             for (int i = 0; i < modelFile.Materials.Materials.Count; i++)
             {
                 if (fixedInvalidMats.Contains(modelFile.Materials.Materials[i].Name) || fixedSameNameMats.Contains(modelFile.Materials.Materials[i].Name))
                 {
+                    Material newMaterial;
+                    string name = modelFile.Materials.Materials[i].Name;
+
                     if (modelFile.Materials.Materials[i].Flags.HasFlag(MaterialFlags.HasDiffuseMap))
                     {
-                        string name = modelFile.Materials.Materials[i].Name;
-
-                        diffuseMapName = modelFile.Materials.Materials[i].DiffuseMap.Name;
-                        var newMaterial = YamlSerializer.LoadYamlFile<Material>(presetYamlPath);
+                        string diffuseMapName = modelFile.Materials.Materials[i].DiffuseMap.Name;
+                        newMaterial = YamlSerializer.LoadYamlFile<Material>(presetYamlPath);
                         newMaterial.Name = name;
                         newMaterial.DiffuseMap.Name = diffuseMapName;
-                        newDict.Add(newMaterial);
                     }
                     else
                     {
-                        failedMats.Add(modelFile.Materials.Materials[i].Name);
-                        newDict.Add(modelFile.Materials.Materials[i]);
+                        name = modelFile.Materials.Materials[i].Name;
+                        var defaultYamlPath = Path.GetDirectoryName(presetYamlPath) + "\\1_gfdDefaultMat0.yml";
+                        newMaterial = YamlSerializer.LoadYamlFile<Material>(defaultYamlPath);
                     }
+                    newMaterial.Name = name;
+                    newDict.Add(newMaterial);
                 }
                 else
                 {
@@ -54,18 +56,6 @@ namespace P5MatValidator
 
             modelFile.Materials = newDict;
             modelFile.Save(modelPath);
-
-            if (failedMats.Count > 0)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Failed to automatically convert the following mats, probably because of no diffuse map:\n");
-
-                foreach (var mat in failedMats)
-                {
-                    Console.WriteLine(mat);
-                }
-                Console.ForegroundColor = ConsoleColor.White;
-            }
         }
 
         private static List<string> FixMatNames(List<string> mats)
