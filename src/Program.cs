@@ -56,31 +56,31 @@ namespace P5MatValidator
                 if (args[i] == "-convert") mode |= Mode.convert;
                 if (args[i] == "-dump") mode |= Mode.dump;
                 if (args[i] == "-search") mode |= Mode.search;
-                if (args[i] == "-combine")
-                {
-                    mode |= Mode.combine;
-
-                    try
-                    {
-                        matVersion = Int32.Parse(args[i + 1]);
-                    }
-                    catch (IndexOutOfRangeException)
-                    {
-                        Console.WriteLine("no version was found, version won't be filtered");
-                    }
-                    catch (FormatException)
-                    {
-                        Console.WriteLine("version number is not in the correct format. Correct format example: 17846528 (decimal)");
-                        mode = 0;
-                        return;
-                    }
-                    catch (OverflowException)
-                    {
-                        Console.WriteLine("version number is outside the bounds of an integer");
-                        mode = 0;
-                        return;
-                    }
-                }
+                //if (args[i] == "-combine")
+                //{
+                //    mode |= Mode.combine;
+                //
+                //    try
+                //    {
+                //        matVersion = Int32.Parse(args[i + 1]);
+                //    }
+                //    catch (IndexOutOfRangeException)
+                //    {
+                //        Console.WriteLine("no version was found, version won't be filtered");
+                //    }
+                //    catch (FormatException)
+                //    {
+                //        Console.WriteLine("version number is not in the correct format. Correct format example: 17846528 (decimal)");
+                //        mode = 0;
+                //        return;
+                //    }
+                //    catch (OverflowException)
+                //    {
+                //        Console.WriteLine("version number is outside the bounds of an integer");
+                //        mode = 0;
+                //        return;
+                //    }
+                //}
             }
 
             //print program usage if less than 3 args
