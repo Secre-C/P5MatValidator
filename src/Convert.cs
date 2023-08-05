@@ -1,14 +1,6 @@
-﻿using GFDLibrary.Materials;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static P5MatValidator.Program;
+﻿using GFDLibrary;
+using GFDLibrary.Materials;
 using static GFDLibrary.Api.FlatApi;
-using GFDLibrary;
-using System.Drawing;
-using System.Xml.Linq;
 
 namespace P5MatValidator
 {
@@ -18,8 +10,6 @@ namespace P5MatValidator
         {
             List<string> fixedInvalidMats = FixMatNames(invalidMats);
             List<string> fixedSameNameMats = FixMatNames(sameNameMats);
-
-            List<string> failedMats = new List<string>();
 
             var newDict = new MaterialDictionary();
 

@@ -1,17 +1,13 @@
-﻿using System;
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using static GFDLibrary.Api.FlatApi;
+﻿using GFDLibrary;
 using GFDLibrary.Materials;
-using GFDLibrary;
-using static P5MatValidator.Comparisons;
-using static P5MatValidator.Validation;
-using static P5MatValidator.Utils;
+using System.Diagnostics;
+using static GFDLibrary.Api.FlatApi;
 using static P5MatValidator.Combine;
+using static P5MatValidator.Convert;
 using static P5MatValidator.Dump;
 using static P5MatValidator.Search;
-using static P5MatValidator.Convert;
+using static P5MatValidator.Utils;
+using static P5MatValidator.Validation;
 
 namespace P5MatValidator
 {
@@ -23,7 +19,7 @@ namespace P5MatValidator
     internal class Program
     {
         public static Mode mode = 0;
-        public static int ?matVersion = null;
+        public static int? matVersion = null;
         public static Stopwatch Stopwatch = new Stopwatch();
         public static List<string> FailedMaterialFiles = new List<string>();
 
@@ -72,13 +68,13 @@ namespace P5MatValidator
                     {
                         Console.WriteLine("no version was found, version won't be filtered");
                     }
-                    catch(FormatException)
+                    catch (FormatException)
                     {
                         Console.WriteLine("version number is not in the correct format. Correct format example: 17846528 (decimal)");
                         mode = 0;
                         return;
                     }
-                    catch(OverflowException)
+                    catch (OverflowException)
                     {
                         Console.WriteLine("version number is outside the bounds of an integer");
                         mode = 0;
@@ -142,7 +138,7 @@ namespace P5MatValidator
             Task<MaterialInfo> compareMaterials = GenerateMaterialList(compareModelDir, referenceMaterialDir);
 
             //Search all files in refMatDir for mats
-            string[] fileExtenstions = {"*.gmtd", "*.gmt", "*.GFS", "*.GMD"};
+            string[] fileExtenstions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
             List<string> matFileNames = GetFiles($"{referenceMaterialDir}", fileExtenstions, SearchOption.AllDirectories);
 
             List<MaterialInfo> referenceMaterials = new();
@@ -153,13 +149,13 @@ namespace P5MatValidator
                 {
                     referenceMaterials.Add(await GenerateMaterialList(matFile, referenceMaterialDir));
                 }
-                catch 
+                catch
                 {
                     FailedMaterialFiles.Add(Path.GetRelativePath(referenceMaterialDir, matFile));
                 }
             }
 
-            return(await compareMaterials, referenceMaterials);
+            return (await compareMaterials, referenceMaterials);
         }
 
         internal static async Task<MaterialInfo> GenerateMaterialList(string filePath, string referenceMaterialDir)

@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using GFDLibrary.Materials;
 using static P5MatValidator.Program;
 using static P5MatValidator.Utils;
-using static GFDLibrary.Api.FlatApi;
-using GFDLibrary.Materials;
-using GFDLibrary;
-using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
 
 namespace P5MatValidator
 {

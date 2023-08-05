@@ -1,11 +1,6 @@
 ﻿using GFDLibrary.Materials;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static P5MatValidator.Utils;
 using static P5MatValidator.Program;
+using static P5MatValidator.Utils;
 
 namespace P5MatValidator
 {
@@ -32,9 +27,9 @@ namespace P5MatValidator
                             combinedMatDict.Add(mat);
                     }
                 }
-                catch 
-                { 
-                    FailedMaterialFiles.Add(Path.GetRelativePath(modelsDir, modelPath));    
+                catch
+                {
+                    FailedMaterialFiles.Add(Path.GetRelativePath(modelsDir, modelPath));
                 }
             }
 
