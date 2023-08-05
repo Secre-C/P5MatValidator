@@ -91,19 +91,19 @@ namespace P5MatValidator
 
             var results = await Task.WhenAll(compareTasks);
 
-            foreach (var result in results)
+            foreach (var (compareMaterialName, isValid, matchingMaterialName) in results)
             {
-                if (result.isValid == 0) //invalid
+                if (isValid == 0) //invalid
                 {
-                    invalidMats.Add($"{result.compareMaterialName}");
+                    invalidMats.Add($"{compareMaterialName}");
                 }
-                else if (result.isValid == 2) //matching name
+                else if (isValid == 2) //matching name
                 {
-                    sameNameMats.Add($"{result.compareMaterialName} -> {result.matchingMaterialName}");
+                    sameNameMats.Add($"{compareMaterialName} -> {matchingMaterialName}");
                 }
                 else //valid
                 {
-                    validMats.Add($"{result.compareMaterialName} -> {result.matchingMaterialName}");
+                    validMats.Add($"{compareMaterialName} -> {matchingMaterialName}");
                 }
             }
 

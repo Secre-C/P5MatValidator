@@ -20,8 +20,8 @@ namespace P5MatValidator
     {
         public static Mode mode = 0;
         public static int? matVersion = null;
-        public static Stopwatch Stopwatch = new Stopwatch();
-        public static List<string> FailedMaterialFiles = new List<string>();
+        public static Stopwatch Stopwatch = new ();
+        public static List<string> FailedMaterialFiles = new();
 
         internal enum Mode
         {
@@ -109,10 +109,10 @@ namespace P5MatValidator
             //run commands based on 
             if ((mode & Mode.validate) > 0)
             {
-                var results = await ValidateMaterials(args[0], args[1]);
+                var (invalidMats, validMats, sameNameMats) = await ValidateMaterials(args[0], args[1]);
 
                 if ((Mode.convert & mode) > 0)
-                    ConvertInvalidMaterialsToPreset(args[0], args[2], results.invalidMats, results.sameNameMats);
+                    ConvertInvalidMaterialsToPreset(args[0], args[2], invalidMats, sameNameMats);
 
                 return;
             }

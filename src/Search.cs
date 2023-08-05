@@ -248,7 +248,7 @@ namespace P5MatValidator
         {
             if (hexString.StartsWith("0x"))
             {
-                hexString = hexString.Substring(2);
+                hexString = hexString[2..];
                 return UInt32.Parse(hexString, System.Globalization.NumberStyles.HexNumber);
             }
             else
@@ -326,7 +326,7 @@ namespace P5MatValidator
         {
             int matchingCoords = 0;
 
-            Func<byte, byte, int> texCompare = (byte op1, byte op2) =>
+            static int texCompare(byte op1, byte op2)
             {
                 if (op1 == op2 && op2 != 7)
                     return 1;
@@ -334,7 +334,7 @@ namespace P5MatValidator
                     return 0;
                 else
                     return 2;
-            };
+            }
 
             var cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
             if (cDiffuse == 2)
@@ -386,7 +386,7 @@ namespace P5MatValidator
 
         internal bool TestTexcoord(uint value, uint accuracy)
         {
-            Texcoord inputTexcoord = new Texcoord(value);
+            Texcoord inputTexcoord = new(value);
 
             return TestTexcoord(inputTexcoord, accuracy);
         }

@@ -4,7 +4,7 @@
     {
         internal static List<string> GetFiles(string path, string[] searchPatterns, SearchOption searchOption)
         {
-            List<string> files = new List<string>();
+            List<string> files = new();
 
             foreach (string pattern in searchPatterns)
             {
