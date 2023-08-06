@@ -22,7 +22,7 @@ namespace P5MatValidator
                 {
                     if (Args[i].StartsWith('-'))
                     {
-                        CommandParams.Add(new KeyValuePair<string, string>(Args[i], Args[i + 1]));
+                        CommandParams.Add(new KeyValuePair<string, string>(Args[i][1..], Args[i + 1]));
                         i += 2;
                     }
                     else if (Args[i].StartsWith('!'))
@@ -49,7 +49,38 @@ namespace P5MatValidator
 
         }
 
-        private Mode GetModeSet(string arg)
+        internal string GetArgValue(string key)
+        {
+            foreach(var param in CommandParams)
+            {
+                if (param.Key == key)
+                    return param.Value;
+            }
+
+            throw new KeyNotFoundException($"Couldn't find arg key \"{key}\"");
+        }
+
+        internal bool TryGetArgValue(string key, out string value)
+        {
+            try
+            {
+                value = GetArgValue(key);
+                return true;
+            }
+            catch (KeyNotFoundException)
+            {
+                Utils.DebugLog($"Could not find Key \"{key}\"");
+                value = null;
+                return false;
+            }
+        }
+
+        internal bool IsModeActive(Mode mode)
+        {
+            return (RunMode & mode) != 0;
+        }
+
+        private static Mode GetModeSet(string arg)
         {
             if (arg.Contains("validate")) return Mode.validate;
             if (arg.Contains("strict")) return Mode.strict;
@@ -68,6 +99,23 @@ namespace P5MatValidator
             combine = 0x8,
             search = 0x10,
             convert = 0x20,
+        }
+    }
+
+    public class KeyNotFoundException : Exception 
+    {
+        public KeyNotFoundException()
+        {
+        }
+
+        public KeyNotFoundException(string message)
+            : base(message)
+        {
+        }
+
+        public KeyNotFoundException(string message, Exception inner)
+        : base(message, inner)
+        {
         }
     }
 }

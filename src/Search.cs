@@ -14,13 +14,13 @@ namespace P5MatValidator
             string[] fileExtenstions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
             List<string> matFileNames = GetFiles($"{dumpPath}", fileExtenstions, SearchOption.AllDirectories);
 
-            List<MaterialInfo> referenceMaterials = new();
+            List<ReferenceMaterial> referenceMaterials = new();
 
             foreach (string matFile in matFileNames)
             {
                 try
                 {
-                    referenceMaterials.Add(await GenerateMaterialList(matFile, dumpPath));
+                    //referenceMaterials.Add(await GenerateMaterialList(matFile, dumpPath));
                 }
                 catch
                 {
@@ -28,7 +28,7 @@ namespace P5MatValidator
                 }
             }
 
-            foreach (MaterialInfo materials in referenceMaterials)
+            foreach (ReferenceMaterial materials in referenceMaterials)
             {
                 bool doesMaterialHaveMatchingMember = false;
 
