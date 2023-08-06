@@ -8,14 +8,13 @@ namespace P5MatValidator
     {
         internal static void ConvertAllInvalidMaterials(ModelPack modelFile, string modelOutputPath, string presetYamlPath, Validator validatorResults)
         {
-            bool usePresets = presetYamlPath != null;
             var newDict = new MaterialDictionary();
 
             for (int i = 0; i < modelFile.Materials.Materials.Count; i++)
             {
                 if (validatorResults.IsMaterialValid(modelFile.Materials.Materials[i].Name))
                 {
-                    newDict.Add(ConvertMaterial(modelFile.Materials.Materials[i], presetYamlPath, usePresets));
+                    newDict.Add(ConvertMaterial(modelFile.Materials.Materials[i], presetYamlPath));
                 }
                 else
                 {
@@ -29,8 +28,10 @@ namespace P5MatValidator
             Console.WriteLine(modelOutputPath);
         }
 
-        internal static Material ConvertMaterial(Material inputMaterial, string presetYamlPath, bool usePresets)
+        internal static Material ConvertMaterial(Material inputMaterial, string presetYamlPath)
         {
+            bool usePresets = presetYamlPath != null;
+
             if (!usePresets && TryFindReplacementMat(inputMaterial, out Material outputMaterial))
                 return outputMaterial;
             else

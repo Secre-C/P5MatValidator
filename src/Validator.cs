@@ -171,7 +171,7 @@ namespace P5MatValidator
                         continue;
                     if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
                         continue;
-                    if (!AreAttributesEqual(material, royalMaterial))
+                    if (!AreAttributesEqual(material, royalMaterial, useStrictCompare))
                         continue;
 
                     validity = MaterialValididty.Valid;

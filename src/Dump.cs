@@ -7,13 +7,10 @@ namespace P5MatValidator
 {
     internal class Dump
     {
-        internal static void DumpMats(string[] args)
+        internal static void DumpMats(string resourceDir, string matOutputDir)
         {
-            string modelDir = args[0];
-            string matOutputDir = args[1];
-
             string[] fileExtensions = { "*.GFS", "*.GMD" };
-            List<string> gfsFileNames = GetFiles(modelDir, fileExtensions, SearchOption.AllDirectories);
+            List<string> gfsFileNames = GetFiles(resourceDir, fileExtensions, SearchOption.AllDirectories);
 
             var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
 
@@ -24,14 +21,14 @@ namespace P5MatValidator
                 {
                     var gfsFile = LoadModel(file);
 
-                    string savePath = Path.GetDirectoryName(Path.GetRelativePath(modelDir, file)) + "\\";
+                    string savePath = Path.GetDirectoryName(Path.GetRelativePath(resourceDir, file)) + "\\";
                     Directory.CreateDirectory(matOutputDir + savePath);
 
                     gfsFile.Materials.Save($"{matOutputDir}{savePath}{Path.GetFileNameWithoutExtension(file)}.gmtd");
                 }
                 catch
                 {
-                    FailedMaterialFiles.Add($"{Path.GetRelativePath(modelDir, file)}");
+                    FailedMaterialFiles.Add($"{Path.GetRelativePath(resourceDir, file)}");
                 }
             }
 
@@ -47,9 +44,6 @@ namespace P5MatValidator
                 }
                 Console.ForegroundColor = ConsoleColor.White;
             }
-
-            Program.Stopwatch.Stop();
-            Console.WriteLine($"\nElapsed Time: {Program.Stopwatch.Elapsed}");
 
             return;
         }

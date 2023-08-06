@@ -6,31 +6,17 @@ namespace P5MatValidator
 {
     internal class Combine
     {
-        internal static async void CreateCombinedMat(string modelsDir, string outputFilePath)
+        internal static void CreateCombinedMat(MaterialResources materialResource, string outputFilePath, string materialVersion)
         {
+            _ = UInt32.TryParse(materialVersion, out uint matVersion);
             Console.WriteLine("Combining Materials...");
 
             var combinedMatDict = new MaterialDictionary();
 
-            string[] pattern = { "*.GFS", "*.GMD", "*.gmt", "*.gmtd" };
-
-            List<string> modelPaths = GetFiles(modelsDir, pattern, SearchOption.AllDirectories);
-
-            foreach (string modelPath in modelPaths)
+            foreach (var mat in materialResource.referenceMaterials.SelectMany(matDict => matDict.materials))
             {
-                try
-                {
-                    var matList = await GenerateMaterialList(modelsDir, modelPath);
-                    foreach (var mat in matList.materials)
-                    {
-                        if (mat.Version == matVersion || matVersion == null)
-                            combinedMatDict.Add(mat);
-                    }
-                }
-                catch
-                {
-                    FailedMaterialFiles.Add(Path.GetRelativePath(modelsDir, modelPath));
-                }
+                if (mat.Version == matVersion || matVersion == null)
+                    combinedMatDict.Add(mat);
             }
 
             if (FailedMaterialFiles.Count > 0)

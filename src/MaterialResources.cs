@@ -5,13 +5,19 @@ using static P5MatValidator.Utils;
 
 namespace P5MatValidator
 {
-    internal class MaterialResources
+    public class MaterialResources
     {
-        internal readonly Resource inputResource;
-        internal readonly string inputFilePath;
-        internal readonly string referenceMaterialPath;
-        internal readonly List<Material> inputMaterials;
-        internal readonly List<ReferenceMaterial> referenceMaterials = new();
+        internal Resource? inputResource { get; private set; }
+        internal string? inputFilePath { get; private set; }
+        internal string? referenceMaterialPath { get; private set; }
+        internal List<Material>? inputMaterials { get; private set; } = new();
+        internal List<ReferenceMaterial>? referenceMaterials { get; private set; } = new();
+
+        public MaterialResources(string referenceMaterialPath)
+        {
+            this.referenceMaterialPath = referenceMaterialPath;
+            GetReferenceMaterials();
+        }
         public MaterialResources(string inputFilePath, string referenceMaterialPath)
         {
             this.inputFilePath = inputFilePath;
@@ -20,28 +26,34 @@ namespace P5MatValidator
             inputResource = Resource.Load(inputFilePath);
             var getInputFileMaterials = GenerateMaterialList(inputResource, inputFilePath);
 
+            GetReferenceMaterials();
+
+            inputMaterials = getInputFileMaterials.Result.materials;
+        }
+
+        private void GetReferenceMaterials()
+        {
             string[] fileExtensions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
             List<string> referenceMaterialFiles = GetFiles(referenceMaterialPath, fileExtensions, SearchOption.AllDirectories);
-            
-            foreach(var referenceMaterialFile in referenceMaterialFiles)
+
+            foreach (var referenceMaterialFile in referenceMaterialFiles)
             {
                 try
                 {
                     referenceMaterials.Add(GenerateMaterialList(referenceMaterialFile).Result);
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     //throw new Exception($"Unhandled Exception when Generating Material List for \"{referenceMaterialFile}\" {ex}");
                 }
             }
-
-            inputMaterials = getInputFileMaterials.Result.materials;
         }
 
         internal async Task<ReferenceMaterial> GenerateMaterialList(string filePath)
         {
             return await GenerateMaterialList(Resource.Load(filePath), filePath);
         }
+
         internal async Task<ReferenceMaterial> GenerateMaterialList(Resource gfdResource, string filePath)
         {
             ReferenceMaterial materialInfo = new();

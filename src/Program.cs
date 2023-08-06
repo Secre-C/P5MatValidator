@@ -6,21 +6,14 @@ using static GFDLibrary.Api.FlatApi;
 using static P5MatValidator.Combine;
 using static P5MatValidator.Converter;
 using static P5MatValidator.Dump;
-using static P5MatValidator.Search;
+using static P5MatValidator.MaterialSearcher;
 using static P5MatValidator.Utils;
 using static P5MatValidator.Validator;
 
 namespace P5MatValidator
 {
-    public struct ReferenceMaterial
-    {
-        internal List<Material> materials;
-        internal string? fileName;
-    }
     internal class Program
     {
-        public static Mode mode = 0;
-        public static int? matVersion = null;
         public static Stopwatch Stopwatch = new ();
         public static List<string> FailedMaterialFiles = new();
 
@@ -47,31 +40,24 @@ namespace P5MatValidator
             //Process Arguments and set modes
             InputHandler inputHandler = new(args);
 
-            //return early if no mode is set
-            if (inputHandler.RunMode == 0)
-            {
-                ShowProgramUsage();
-                return;
-            }
-
             //timer for benchmarking
             Stopwatch.Start();
 
             //run commands based on 
-            if (inputHandler.IsModeActive(InputHandler.Mode.validate))
+            if (inputHandler.TryGetCommand("validate"))
             {
-                string fileInput = inputHandler.GetArgValue("i");
-                string materialReferenceDump = inputHandler.GetArgValue("mats");
+                string fileInput = inputHandler.GetParameterValue("i");
+                string materialReferenceDump = inputHandler.GetParameterValue("mats");
 
                 MaterialResources materialResource = new(fileInput, materialReferenceDump);
-                Validator validator = new(materialResource, inputHandler.IsModeActive(InputHandler.Mode.strict));
+                Validator validator = new(materialResource, inputHandler.TryGetCommand("strict"));
 
                 validator.RunValidation();
                 validator.PrintValidationResults();
 
-                if (inputHandler.IsModeActive(InputHandler.Mode.convert))
+                if (inputHandler.TryGetCommand("convert"))
                 {
-                    if (!inputHandler.TryGetArgValue("o", out string modelOutputPath))
+                    if (!inputHandler.TryGetParameterValue("o", out string modelOutputPath))
                         modelOutputPath = materialResource.inputFilePath;
 
                     if (materialResource.inputResource.ResourceType != ResourceType.ModelPack)
@@ -79,92 +65,44 @@ namespace P5MatValidator
                         throw new Exception($"Expected to convert resource of type \"ModelPack\", got \"{materialResource.inputResource.ResourceType}\"");
                     }
 
-                    _ = inputHandler.TryGetArgValue("preset", out string presetYamlPath);
+                    _ = inputHandler.TryGetParameterValue("preset", out string presetYamlPath);
+
                     ConvertAllInvalidMaterials((ModelPack)materialResource.inputResource, modelOutputPath, presetYamlPath, validator);
                 }
             }
-            else if ((mode & Mode.combine) > 0)
+            else if (inputHandler.TryGetParameterValue("combine", out string materialVersion))
             {
-                CreateCombinedMat(args[0], args[1]);
+                string materialDumpPath = inputHandler.GetParameterValue("i");
+                string outputFilePath = inputHandler.GetParameterValue("o");
+
+                var materialResource = new MaterialResources(materialDumpPath);
+
+                CreateCombinedMat(materialResource, outputFilePath, materialVersion);
             }
-            else if ((mode & Mode.dump) > 0)
+            else if (inputHandler.TryGetCommand("dump"))
             {
-                DumpMats(args);
+                string resourceInputDir = inputHandler.GetParameterValue("i");
+                string outputDir = inputHandler.GetParameterValue("o");
+                DumpMats(resourceInputDir, outputDir);
             }
-            else if ((mode & Mode.search) > 0)
+            else if (inputHandler.TryGetCommand("search"))
             {
-                PrintSearchResults(await SearchForMaterial(args));
+                string referenceMaterialPath = inputHandler.GetParameterValue("i");
+                var materialResource = new MaterialResources(referenceMaterialPath);
+                var materialSearcher = new MaterialSearcher(inputHandler);
+                materialSearcher.SearchForMaterial(materialResource);
+                materialSearcher.PrintSearchResults();
+            }
+            else
+            {
+                ShowProgramUsage();
+                return;
             }
 
             Stopwatch.Stop();
             Console.WriteLine($"\nElapsed Time: {Stopwatch.Elapsed}");
 
             return;
-        }
-        internal static async Task<(ReferenceMaterial, List<ReferenceMaterial>)> PrepareMaterialLists(string compareModelDir, string referenceMaterialDir)
-        {
-            //Generate Compare Material List 
-            Task<ReferenceMaterial> compareMaterials = GenerateMaterialList(compareModelDir, referenceMaterialDir);
-
-            //Search all files in refMatDir for mats
-            string[] fileExtenstions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
-            List<string> matFileNames = GetFiles($"{referenceMaterialDir}", fileExtenstions, SearchOption.AllDirectories);
-
-            List<ReferenceMaterial> referenceMaterials = new();
-
-            foreach (string matFile in matFileNames)
-            {
-                try
-                {
-                    referenceMaterials.Add(await GenerateMaterialList(matFile, referenceMaterialDir));
-                }
-                catch
-                {
-                    FailedMaterialFiles.Add(Path.GetRelativePath(referenceMaterialDir, matFile));
-                }
-            }
-
-            return (await compareMaterials, referenceMaterials);
-        }
-
-        internal static async Task<ReferenceMaterial> GenerateMaterialList(string filePath, string referenceMaterialDir)
-        {
-            ReferenceMaterial materialInfo = new();
-
-            //Add List of materials and filename to materialInfo struct
-            if (Path.GetExtension(filePath).ToLower() == ".gfs" || Path.GetExtension(filePath).ToLower() == ".gmd")
-            {
-                materialInfo.materials = (List<Material>)LoadModel(filePath).Materials.Materials;
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
-
-                return materialInfo;
-            }
-            else if (Path.GetExtension(filePath).ToLower() == ".gmtd")
-            {
-                var matDict = (MaterialDictionary)Resource.Load(filePath);
-                materialInfo.materials = (List<Material>)matDict.Materials;
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
-
-                return materialInfo;
-            }
-            else if (Path.GetExtension(filePath).ToLower() == ".gmt")
-            {
-                var mat = (Material)Resource.Load(filePath);
-
-                materialInfo.materials = new List<Material>
-                {
-                    mat
-                };
-
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialDir, filePath);
-
-                return materialInfo;
-            }
-            else
-            {
-                materialInfo.materials = new List<Material>();
-                return materialInfo;
-            }
         }
     }
 }

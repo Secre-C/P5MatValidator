@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace P5MatValidator
 {
-    internal class InputHandler
+    public class InputHandler
     {
         internal readonly string[] Args;
-        internal readonly Mode RunMode = 0;
-        internal readonly List<KeyValuePair<string, string>> CommandParams = new();
-        internal readonly List<string> Modifiers = new();
-        internal InputHandler(string[] input) 
+        internal readonly List<KeyValuePair<string, string>> Parameters = new();
+        internal readonly List<string> Commands = new();
+        public InputHandler(string[] input) 
         {
             Args = input;
 
@@ -22,13 +21,12 @@ namespace P5MatValidator
                 {
                     if (Args[i].StartsWith('-'))
                     {
-                        CommandParams.Add(new KeyValuePair<string, string>(Args[i][1..], Args[i + 1]));
+                        Parameters.Add(new KeyValuePair<string, string>(Args[i][1..], Args[i + 1]));
                         i += 2;
                     }
                     else if (Args[i].StartsWith('!'))
                     {
-                        Modifiers.Add(Args[i]);
-                        RunMode |= GetModeSet(Args[i]);
+                        Commands.Add(Args[i][1..]);
                         i++;
                     }
                     else
@@ -49,9 +47,14 @@ namespace P5MatValidator
 
         }
 
-        internal string GetArgValue(string key)
+        internal bool TryGetCommand(string command)
         {
-            foreach(var param in CommandParams)
+            return Commands.Contains(command);
+        }
+
+        internal string GetParameterValue(string key)
+        {
+            foreach(var param in Parameters)
             {
                 if (param.Key == key)
                     return param.Value;
@@ -60,11 +63,11 @@ namespace P5MatValidator
             throw new KeyNotFoundException($"Couldn't find arg key \"{key}\"");
         }
 
-        internal bool TryGetArgValue(string key, out string value)
+        internal bool TryGetParameterValue(string key, out string value)
         {
             try
             {
-                value = GetArgValue(key);
+                value = GetParameterValue(key);
                 return true;
             }
             catch (KeyNotFoundException)
@@ -73,32 +76,6 @@ namespace P5MatValidator
                 value = null;
                 return false;
             }
-        }
-
-        internal bool IsModeActive(Mode mode)
-        {
-            return (RunMode & mode) != 0;
-        }
-
-        private static Mode GetModeSet(string arg)
-        {
-            if (arg.Contains("validate")) return Mode.validate;
-            if (arg.Contains("strict")) return Mode.strict;
-            if (arg.Contains("convert")) return Mode.convert;
-            if (arg.Contains("dump")) return Mode.dump;
-            if (arg.Contains("search")) return Mode.search;
-
-            return 0;
-        }
-
-        internal enum Mode
-        {
-            validate = 0x1,
-            strict = 0x2,
-            dump = 0x4,
-            combine = 0x8,
-            search = 0x10,
-            convert = 0x20,
         }
     }
 
