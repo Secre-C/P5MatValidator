@@ -1,33 +1,57 @@
 ﻿using GFDLibrary.Materials;
 using static P5MatValidator.Comparisons;
-using static P5MatValidator.Program;
 
 namespace P5MatValidator
 {
-    internal class Validation
+    internal class Validator
     {
-        internal static async Task<(List<string> invalidMats, List<string> validMats, List<string> sameNameMats)> ValidateMaterials(string inputModelPath, string referenceMaterialPath)
+        internal List<MaterialValidationResult> materialValidationResults = new();
+        private readonly MaterialResources materialResources;
+        private readonly bool useStrictCompare = false;
+
+        internal Validator(MaterialResources materialResources, bool useStrictCompare) 
+            : this(materialResources)
         {
-            //Get both material lists
-            (MaterialInfo compareMaterials, List<MaterialInfo> referenceMaterials) = await PrepareMaterialLists(inputModelPath, referenceMaterialPath);
-
-            //compare all materials
-            (List<string> invalidMats, List<string> validMats, List<string> sameNameMats) = await CompareAllMaterials(compareMaterials, referenceMaterials);
-
-            //print results
-            PrintResults(inputModelPath, invalidMats, validMats, sameNameMats);
-
-            return (invalidMats, validMats, sameNameMats);
+            this.useStrictCompare = useStrictCompare;
         }
-        internal static void PrintResults(string filePath, List<string> InvalidMats, List<string> validMats, List<string> sameNameMats)
+
+        internal Validator(MaterialResources materialResources) 
         {
-            Console.Clear();
+            this.materialResources = materialResources;
+        }
+
+        internal void RunValidation()
+        {
+            CompareAllMaterials();
+        }
+
+        internal void PrintValidationResults()
+        {
+            List<string> validMats = new();
+            List<string> invalidMats = new();
+            List<string> sameNameMats = new();
+
+            foreach ( var material in materialValidationResults ) 
+            {
+                if (material.materialValidity == MaterialValididty.Valid)
+                {
+                    validMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
+                }
+                else if (material.materialValidity == MaterialValididty.Invalid)
+                {
+                    invalidMats.Add($"{material.materialName}");
+                }
+                else if (material.materialValidity == MaterialValididty.SameName)
+                {
+                    sameNameMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
+                }
+            }
 
             if (validMats.Count > 0)
             {
                 //Valid Mats
                 Console.WriteLine("\n===============================================");
-                Console.WriteLine($"{Path.GetFileName(filePath)}:");
+                Console.WriteLine($"{Path.GetFileName(materialResources.inputFilePath)}:");
 
                 Console.WriteLine("===============================================");
 
@@ -44,7 +68,7 @@ namespace P5MatValidator
             //Matching Names
             if (sameNameMats.Count > 0)
             {
-                if ((mode & Mode.strict) <= 0)
+                if (!useStrictCompare)
                     Console.WriteLine($"Invalid Mats With Matching Names ({sameNameMats.Count}):\n");
                 else
                     Console.WriteLine($"Invalid Mats With Matching Names (Strict Mode) ({sameNameMats.Count}):\n");
@@ -58,73 +82,49 @@ namespace P5MatValidator
             }
 
             //Invalid Mats
-            if (InvalidMats.Count > 0)
+            if (invalidMats.Count > 0)
             {
-                if ((mode & Mode.strict) <= 0)
-                    Console.WriteLine($"Invalid Mats ({InvalidMats.Count}):\n");
+                if (!useStrictCompare)
+                    Console.WriteLine($"Invalid Mats ({invalidMats.Count}):\n");
                 else
-                    Console.WriteLine($"Invalid Mats (Strict Mode) ({InvalidMats.Count}):\n");
+                    Console.WriteLine($"Invalid Mats (Strict Mode) ({invalidMats.Count}):\n");
 
                 Console.ForegroundColor = ConsoleColor.Red;
-                foreach (var mat in InvalidMats)
+                foreach (var mat in invalidMats)
                     Console.WriteLine(mat);
 
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine("===============================================");
             }
-
-            Stopwatch.Stop();
-            Console.WriteLine($"\nElapsed Time: {Stopwatch.Elapsed}");
         }
-        internal static async Task<(List<string>, List<string>, List<string>)> CompareAllMaterials(MaterialInfo compareMaterials, List<MaterialInfo> referenceMaterials)
+        private void CompareAllMaterials()
         {
-            List<string> invalidMats = new();
-            List<string> validMats = new();
-            List<string> sameNameMats = new();
+            List<Task<MaterialValidationResult>> compareTasks = new();
 
-            List<Task<(string compareMaterialName, byte isValid, string matchingMaterialName)>> compareTasks = new();
-
-            foreach (var material in compareMaterials.materials)
+            foreach (var material in materialResources.inputMaterials)
             {
-                compareTasks.Add(CompareMaterial(material, referenceMaterials));
+                compareTasks.Add(CompareMaterial(material));
             }
 
-            var results = await Task.WhenAll(compareTasks);
-
-            foreach (var (compareMaterialName, isValid, matchingMaterialName) in results)
-            {
-                if (isValid == 0) //invalid
-                {
-                    invalidMats.Add($"{compareMaterialName}");
-                }
-                else if (isValid == 2) //matching name
-                {
-                    sameNameMats.Add($"{compareMaterialName} -> {matchingMaterialName}");
-                }
-                else //valid
-                {
-                    validMats.Add($"{compareMaterialName} -> {matchingMaterialName}");
-                }
-            }
-
-            return (invalidMats, validMats, sameNameMats);
+            var result = Task.WhenAll(compareTasks).Result;
+            materialValidationResults = result.ToList();
         }
 
-        internal static async Task<(string, byte, string?)> CompareMaterial(Material royalMaterial, List<MaterialInfo> referenceMaterials)
+        internal async Task<MaterialValidationResult> CompareMaterial(Material royalMaterial)
         {
-            byte validity = 0;
-            string? matchingMat = null;
+            MaterialValididty validity = MaterialValididty.Invalid;
+            string matchingMat = "";
 
-            foreach (var materialInfo in referenceMaterials)
+            foreach (var referenceMaterial in materialResources.referenceMaterials)
             {
-                foreach (var material in materialInfo.materials)
+                foreach (var material in referenceMaterial.materials)
                 {
                     if (material.Name == royalMaterial.Name)
                     {
-                        validity = 2;
-                        matchingMat = materialInfo.fileName;
+                        validity = MaterialValididty.SameName;
+                        matchingMat = referenceMaterial.fileName;
                     }
-                    if ((mode & Mode.strict) > 0) //check these in strict mode
+                    if (useStrictCompare) //check these in strict mode
                     {
                         if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor))
                             continue;
@@ -171,19 +171,49 @@ namespace P5MatValidator
                         continue;
                     if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
                         continue;
-                    if (!AreAttributesEqual(material, royalMaterial))
+                    if (!AreAttributesEqual(material, royalMaterial, useStrictCompare))
                         continue;
 
-                    validity = 1;
-                    matchingMat = $"{material.Name} ({materialInfo.fileName})";
+                    validity = MaterialValididty.Valid;
+                    matchingMat = $"{material.Name} ({referenceMaterial.fileName})";
                     break;
                 }
 
-                if (validity == 1)
+                if (validity == MaterialValididty.Valid)
                     break;
             }
 
-            return (royalMaterial.Name, validity, matchingMat);
+            return new MaterialValidationResult
+            {
+                materialName = royalMaterial.Name,
+                materialValidity = validity,
+                matchingMaterialPath = matchingMat
+            };
+        }
+
+        internal bool IsMaterialValid(string materialName)
+        {
+            return materialValidationResults.Any(validatorResult => validatorResult.materialName == materialName &&
+                (validatorResult.materialValidity == MaterialValididty.Invalid || validatorResult.materialValidity == MaterialValididty.SameName));
+        }
+
+        internal bool IsMaterialValid(MaterialValidationResult result)
+        {
+            return result.materialValidity == MaterialValididty.Valid;
+        }
+
+        internal struct MaterialValidationResult
+        {
+            internal string materialName;
+            internal MaterialValididty materialValidity;
+            internal string matchingMaterialPath;
+        }
+
+        internal enum MaterialValididty : int
+        {
+            Valid,
+            Invalid,
+            SameName
         }
     }
 }

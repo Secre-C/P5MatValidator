@@ -13,5 +13,25 @@
 
             return files;
         }
+
+        internal static void LogColor(object message, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        internal static void DebugLog(object message)
+        {
+#if DEBUG
+            Console.WriteLine(message);
+#endif
+        }
+
+        internal static void DebugLog(object message, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            DebugLog(message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
     }
 }

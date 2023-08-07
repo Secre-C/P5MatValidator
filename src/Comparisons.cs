@@ -27,7 +27,7 @@ namespace P5MatValidator
             return true;
         }
 
-        internal static bool AreAttributesEqual(Material a, Material b)
+        internal static bool AreAttributesEqual(Material a, Material b, bool strictMode = false)
         {
             if (!a.Flags.HasFlag(MaterialFlags.HasAttributes) && !b.Flags.HasFlag(MaterialFlags.HasAttributes))
                 return true;
@@ -69,8 +69,8 @@ namespace P5MatValidator
 
                             if (type1a.RawFlags != type1b.RawFlags) return false;
                             if (((ushort)type1a.Type1Flags) != ((ushort)type1b.Type1Flags)) return false;
-                            if (type1a.Field1C != type1b.Field1C && (mode & Mode.strict) > 0) return false;
-                            if (type1a.Field20 != type1b.Field20 && (mode & Mode.strict) > 0) return false;
+                            if (type1a.Field1C != type1b.Field1C && strictMode) return false;
+                            if (type1a.Field20 != type1b.Field20 && strictMode) return false;
                         }
                     }
                 }

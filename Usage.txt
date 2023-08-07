@@ -1,0 +1,42 @@
+P5MatValidator By SecreC.
+
+Usage: <-parameter key> <parameter value>... <!commands>
+
+Commands:
+	!validate
+	!strict
+	!convert
+	!search
+	!dump
+
+Parameters:
+
+	Validator: compare mats and print valid/invalid mats
+		"-i" -- input path
+		"-mats" -- material dump path
+		"!strict" -- Strict validate mode
+		Example: [ -i model.GFS -mats folder/matdump !validate !strict]
+
+	Converter: convert invalid mats to a prest
+		"-i" -- input path
+		"-preset" -- material convert preset path
+		"-mats" -- material dump path
+		"!strict" -- Strict validate mode
+		Example: [ -i model.GFS -mats folder/matdump  -preset matPreest.yml !convert !strict]
+
+	Search: search for a model that matches a specification
+		"-mats" -- material dump path
+		Search Usage:
+			"!search ?<material Parameter> <parameter value> <optional: texcoord accuracy index>"
+			Example: [ !search -mats folder/materialDump ?enablevertcolors 1 ?hasattributes 4 ?texcoord1 0xFF241038 3 ]
+
+	Dump: Dump materials of all models in a path
+		"-i" -- models directory
+		"-o" -- output material dump
+		Example: [ !dump -i data_cpk/model -o folder/matDump ]
+
+	Combine: Combine all materials in a path into a single file
+		required usage: [ -convert <materialVersion> ]
+		"-i" -- material dump path
+		"-o" -- output material file path
+		Example: [ -i folder/matDump -o folder/combinedMats.gmtd -convert 17846528 ]

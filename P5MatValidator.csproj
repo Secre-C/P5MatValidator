@@ -13,4 +13,10 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Usage.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
