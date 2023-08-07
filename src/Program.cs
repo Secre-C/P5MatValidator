@@ -17,25 +17,16 @@ namespace P5MatValidator
         public static Stopwatch Stopwatch = new ();
         public static List<string> FailedMaterialFiles = new();
 
-        internal enum Mode
-        {
-            validate = 0x1,
-            strict = 0x2,
-            dump = 0x4,
-            combine = 0x8,
-            search = 0x10,
-            convert = 0x20,
-        }
         static void ShowProgramUsage()
         {
             StreamReader reader = new("Usage.txt");
             Console.WriteLine(reader.ReadToEnd());
-            reader.Close();
             Console.ReadKey();
+            reader.Close();
             return;
         }
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             //Process Arguments and set modes
             InputHandler inputHandler = new(args);
@@ -44,7 +35,7 @@ namespace P5MatValidator
             Stopwatch.Start();
 
             //run commands based on 
-            if (inputHandler.TryGetCommand("validate"))
+            if (inputHandler.TryGetCommand("validate") || inputHandler.TryGetCommand("convert"))
             {
                 string fileInput = inputHandler.GetParameterValue("i");
                 string materialReferenceDump = inputHandler.GetParameterValue("mats");
@@ -87,7 +78,7 @@ namespace P5MatValidator
             }
             else if (inputHandler.TryGetCommand("search"))
             {
-                string referenceMaterialPath = inputHandler.GetParameterValue("i");
+                string referenceMaterialPath = inputHandler.GetParameterValue("mats");
                 var materialResource = new MaterialResources(referenceMaterialPath);
                 var materialSearcher = new MaterialSearcher(inputHandler);
                 materialSearcher.SearchForMaterial(materialResource);
