@@ -1,13 +1,15 @@
 ﻿using GFDLibrary.Materials;
 using static P5MatValidator.Utils;
 using static P5MatValidator.MaterialResources;
+using static P5MatValidator.MaterialComparer;
+using System.Text.RegularExpressions;
 
 namespace P5MatValidator
 {
     public class MaterialSearcher
     {
-        public List<string> matches { get; private set; } = new();
-        private List<SearchParameter> searchParameters = new();
+        public List<string> Matches { get; private set; } = new();
+        private readonly List<SearchParameter> SearchParameters = new();
         private struct SearchParameter
         {
             public string materialKey;
@@ -38,7 +40,7 @@ namespace P5MatValidator
 
                 if (parsable)
                 {
-                    searchParameters.Add(new SearchParameter
+                    SearchParameters.Add(new SearchParameter
                     {
                         materialKey = args[i][1..],
                         materialValue = args[i + 1],
@@ -48,7 +50,7 @@ namespace P5MatValidator
                 }
                 else
                 {
-                    searchParameters.Add(new SearchParameter
+                    SearchParameters.Add(new SearchParameter
                     {
                         materialKey = args[i][1..],
                         materialValue = args[i + 1],
@@ -60,13 +62,13 @@ namespace P5MatValidator
         }
         public void SearchForMaterial(MaterialResources materialResource)
         {
-            foreach (ReferenceMaterial materials in materialResource.referenceMaterials)
+            foreach (ReferenceMaterial materials in materialResource.ReferenceMaterials)
             {
                 bool doesMaterialHaveMatchingMember = false;
 
                 foreach (Material material in materials.materials)
                 {
-                    foreach (SearchParameter searchParameter in searchParameters)
+                    foreach (SearchParameter searchParameter in SearchParameters)
                     {
                         doesMaterialHaveMatchingMember = CompareMaterialMemberValue(searchParameter, material);
 
@@ -77,7 +79,7 @@ namespace P5MatValidator
                     {
                         try
                         {
-                            matches.Add($"{materials.fileName} -> {material.Name}");
+                            Matches.Add($"{materials.fileName} -> {material.Name}");
                         }
                         catch (NullReferenceException e)
                         {
@@ -88,14 +90,55 @@ namespace P5MatValidator
             }
         }
 
+        public static bool TryFindReplacementMat(Material inputMaterial, MaterialResources? materialResource, out List<MaterialComparer>? outputMaterials, bool useStrictCompare, int maximumPoints, uint texcoordAccuracy)
+        {
+            if (materialResource == null)
+                throw new NullReferenceException(nameof(materialResource));
+
+            outputMaterials = new();
+
+            foreach (ReferenceMaterial referenceDict in materialResource.ReferenceMaterials)
+            {
+                foreach (Material reference in referenceDict.materials)
+                {
+                    int compareResult = CompareMaterial(reference, inputMaterial, useStrictCompare, texcoordAccuracy);
+
+                    if (compareResult != -1 && compareResult <= maximumPoints)
+                        outputMaterials.Add(new MaterialComparer(reference, compareResult, referenceDict.fileName));
+                }
+            }
+
+            if (outputMaterials.Count == 0)
+            {
+                return false;
+            }
+
+            outputMaterials.Sort();
+
+            return true;
+        }
+
+        public static void PrintFindReplacementResults(List<MaterialComparer>? matches)
+        {
+            if (matches == null)
+                throw new NullReferenceException();
+
+            Console.WriteLine($"\nFound {matches.Count} matches:\n");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            foreach (MaterialComparer match in matches)
+            {
+                Console.WriteLine($"{match.points:D2} points || {match.material.Name} -> {match.materialFilename}");
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+        }
         public void PrintSearchResults()
         {
-            if (matches.Count > 0)
+            if (Matches.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"\nMatches Found ({matches.Count})");
+                Console.WriteLine($"\nMatches Found ({Matches.Count})");
                 Console.WriteLine("=====================================");
-                foreach (string match in matches)
+                foreach (string match in Matches)
                 {
                     Console.WriteLine(match);
                 }
@@ -148,7 +191,7 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "castshadow" || searchParameter.materialKey.ToLower() == "bit15")
                 return material.Flags.HasFlag(MaterialFlags.CastShadow) == (Int32.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasattributes" || searchParameter.materialKey.ToLower() == "bit16")
-                return CheckAttribute(material, Int32.Parse(searchParameter.materialValue));
+                return CheckAttributeTypes(material, Int32.Parse(searchParameter.materialValue));
             if (searchParameter.materialKey.ToLower() == "hasoutline" || searchParameter.materialKey.ToLower() == "bit17")
                 return material.Flags.HasFlag(MaterialFlags.HasOutline) == (Int32.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit18")
@@ -209,7 +252,7 @@ namespace P5MatValidator
             {
                 if (searchParameter.texcoordMatchCount != 0)
                 {
-                    return FindReducedTexcoord(material.Field6C, ParseTexcoord(searchParameter.materialValue), searchParameter.texcoordMatchCount);
+                    return FindReducedTexcoord(material.Field6C, ParseTexcoord(searchParameter.materialValue), searchParameter.texcoordMatchCount) != -1;
                 }
                 else
                 {
@@ -220,7 +263,7 @@ namespace P5MatValidator
             {
                 if (searchParameter.texcoordMatchCount != 0)
                 {
-                    return FindReducedTexcoord(material.Field70, ParseTexcoord(searchParameter.materialValue), searchParameter.texcoordMatchCount);
+                    return FindReducedTexcoord(material.Field70, ParseTexcoord(searchParameter.materialValue), searchParameter.texcoordMatchCount) != -1;
                 }
                 else
                 {
@@ -236,19 +279,6 @@ namespace P5MatValidator
             return false;
         }
 
-        static bool FindReducedTexcoord(uint compareValue, uint inputValue, uint keepMinimum)
-        {
-            if (compareValue == inputValue)
-                return true;
-
-            var compareTexcoord = new Texcoord(compareValue);
-
-            if (compareTexcoord.TestTexcoord(inputValue, keepMinimum))
-                return true;
-
-            return false;
-        }
-
         static UInt32 ParseTexcoord(string hexString)
         {
             if (hexString.StartsWith("0x"))
@@ -261,57 +291,20 @@ namespace P5MatValidator
                 return UInt32.Parse(hexString);
             }
         }
-
-        static bool CheckAttribute(Material material, Int32 type)
-        {
-            if (!material.Flags.HasFlag(MaterialFlags.HasAttributes))
-            {
-                if (type == -1)
-                    return true;
-
-                return false;
-            }
-
-
-            foreach (var attr in material.Attributes)
-            {
-                if (type == 0 && attr.AttributeType == MaterialAttributeType.Type0)
-                    return true;
-                if (type == 1 && attr.AttributeType == MaterialAttributeType.Type1)
-                    return true;
-                if (type == 2 && attr.AttributeType == MaterialAttributeType.Type2)
-                    return true;
-                if (type == 3 && attr.AttributeType == MaterialAttributeType.Type3)
-                    return true;
-                if (type == 4 && attr.AttributeType == MaterialAttributeType.Type4)
-                    return true;
-                if (type == 5 && attr.AttributeType == MaterialAttributeType.Type5)
-                    return true;
-                if (type == 6 && attr.AttributeType == MaterialAttributeType.Type6)
-                    return true;
-                if (type == 7 && attr.AttributeType == MaterialAttributeType.Type7)
-                    return true;
-                if (type == 8 && attr.AttributeType == MaterialAttributeType.Type8)
-                    return true;
-            }
-
-            return false;
-
-        }
     }
 
     class Texcoord
     {
         internal uint Raw { get; }
-        private byte Diffuse { get; }
-        private byte Normal { get; }
-        private byte Specular { get; }
-        private byte Reflection { get; }
-        private byte Highlight { get; }
-        private byte Glow { get; }
-        private byte Night { get; }
-        private byte Detail { get; }
-        private byte Shadow { get; }
+        private int Diffuse { get; }
+        private int Normal { get; }
+        private int Specular { get; }
+        private int Reflection { get; }
+        private int Highlight { get; }
+        private int Glow { get; }
+        private int Night { get; }
+        private int Detail { get; }
+        private int Shadow { get; }
 
         internal Texcoord(uint value)
         {
@@ -327,11 +320,11 @@ namespace P5MatValidator
             Shadow = (byte)((value >> 24) & 0x7);
         }
 
-        internal bool TestTexcoord(Texcoord inputTexcoord, uint accuracy)
+        internal int TestTexcoord(Texcoord inputTexcoord, uint accuracy)
         {
             int matchingCoords = 0;
 
-            static int texCompare(byte op1, byte op2)
+            static int texCompare(int op1, int op2)
             {
                 if (op1 == op2 && op2 != 7)
                     return 1;
@@ -343,53 +336,70 @@ namespace P5MatValidator
 
             var cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
             if (cDiffuse == 2)
-                return false;
+                return -1;
             matchingCoords += cDiffuse;
 
             var cNormal = texCompare(this.Normal, inputTexcoord.Normal);
             if (cNormal == 2)
-                return false;
+                return -1;
             matchingCoords += cNormal;
 
             var cSpecular = texCompare(this.Specular, inputTexcoord.Specular);
             if (cSpecular == 2)
-                return false;
+                return -1;
             matchingCoords += cSpecular;
 
             var cReflection = texCompare(this.Reflection, inputTexcoord.Reflection);
             if (cReflection == 2)
-                return false;
+                return -1;
             matchingCoords += cReflection;
 
             var cHighlight = texCompare(this.Highlight, inputTexcoord.Highlight);
             if (cHighlight == 2)
-                return false;
+                return -1;
             matchingCoords += cHighlight;
 
             var cGlow = texCompare(this.Glow, inputTexcoord.Glow);
             if (cGlow == 2)
-                return false;
+                return -1;
             matchingCoords += cGlow;
 
             var cNight = texCompare(this.Night, inputTexcoord.Night);
             if (cNight == 2)
-                return false;
+                return -1;
             matchingCoords += cNight;
 
             var cDetail = texCompare(this.Detail, inputTexcoord.Detail);
             if (cDetail == 2)
-                return false;
+                return -1;
             matchingCoords += cDetail;
 
             var cShadow = texCompare(this.Shadow, inputTexcoord.Shadow);
             if (cShadow == 2)
-                return false;
+                return -1;
             matchingCoords += cShadow;
 
-            return matchingCoords >= accuracy;
+            int texDiff = inputTexcoord.GetEnabledTexcoordCount() - matchingCoords;
+            return texDiff <= accuracy ? texDiff : -1;
+        }
+        internal int GetEnabledTexcoordCount()
+        {
+            int count = 0;
+
+            count += (Diffuse != 7) ? 1 : 0;
+            count += (Normal != 7) ? 1 : 0;
+            count += (Specular != 7) ? 1 : 0;
+            count += (Reflection != 7) ? 1 : 0;
+            count += (Highlight != 7) ? 1 : 0;
+            count += (Glow != 7) ? 1 : 0;
+            count += (Night != 7) ? 1 : 0;
+            count += (Detail != 7) ? 1 : 0;
+            count += (Shadow != 7) ? 1 : 0;
+
+            return count;
         }
 
-        internal bool TestTexcoord(uint value, uint accuracy)
+        internal int TestTexcoord(uint value, uint accuracy)
         {
             Texcoord inputTexcoord = new(value);
 

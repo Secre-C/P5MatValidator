@@ -21,12 +21,12 @@ namespace P5MatValidator
                 {
                     if (Args[i].StartsWith('-'))
                     {
-                        Parameters.Add(new KeyValuePair<string, string>(Args[i][1..], Args[i + 1]));
+                        Parameters.Add(new KeyValuePair<string, string>(Args[i][1..].ToLower(), Args[i + 1].ToLower()));
                         i += 2;
                     }
                     else if (Args[i].StartsWith('!'))
                     {
-                        Commands.Add(Args[i][1..]);
+                        Commands.Add(Args[i][1..].ToLower());
                         i++;
                     }
                     else
@@ -49,14 +49,14 @@ namespace P5MatValidator
 
         internal bool TryGetCommand(string command)
         {
-            return Commands.Contains(command);
+            return Commands.Contains(command.ToLower());
         }
 
         internal string GetParameterValue(string key)
         {
             foreach(var param in Parameters)
             {
-                if (param.Key == key)
+                if (param.Key == key.ToLower())
                     return param.Value;
             }
 
@@ -67,13 +67,13 @@ namespace P5MatValidator
         {
             try
             {
-                value = GetParameterValue(key);
+                value = GetParameterValue(key.ToLower());
                 return true;
             }
             catch (KeyNotFoundException)
             {
                 Utils.DebugLog($"Could not find Key \"{key}\"");
-                value = null;
+                value = string.Empty;
                 return false;
             }
         }

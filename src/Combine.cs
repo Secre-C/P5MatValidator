@@ -13,9 +13,9 @@ namespace P5MatValidator
 
             var combinedMatDict = new MaterialDictionary();
 
-            foreach (var mat in materialResource.referenceMaterials.SelectMany(matDict => matDict.materials))
+            foreach (var mat in materialResource.ReferenceMaterials.SelectMany(matDict => matDict.materials))
             {
-                if (mat.Version == matVersion || matVersion == null)
+                if (mat.Version == matVersion || matVersion == 0)
                     combinedMatDict.Add(mat);
             }
 

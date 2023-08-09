@@ -49,16 +49,9 @@ namespace P5MatValidator
                 if (inputHandler.TryGetCommand("convert"))
                 {
                     if (!inputHandler.TryGetParameterValue("o", out string modelOutputPath))
-                        modelOutputPath = materialResource.inputFilePath;
+                        modelOutputPath = materialResource.InputFilePath;
 
-                    if (materialResource.inputResource.ResourceType != ResourceType.ModelPack)
-                    {
-                        throw new Exception($"Expected to convert resource of type \"ModelPack\", got \"{materialResource.inputResource.ResourceType}\"");
-                    }
-
-                    _ = inputHandler.TryGetParameterValue("preset", out string presetYamlPath);
-
-                    ConvertAllInvalidMaterials((ModelPack)materialResource.inputResource, modelOutputPath, presetYamlPath, validator);
+                    ConvertAllInvalidMaterials(materialResource.InputResource, inputHandler, validator, modelOutputPath, materialResource);
                 }
             }
             else if (inputHandler.TryGetParameterValue("combine", out string materialVersion))
@@ -83,6 +76,28 @@ namespace P5MatValidator
                 var materialSearcher = new MaterialSearcher(inputHandler);
                 materialSearcher.SearchForMaterial(materialResource);
                 materialSearcher.PrintSearchResults();
+            }
+            else if (inputHandler.TryGetCommand("findsimilar"))
+            {
+                Material inputMaterial = (Material)Resource.Load(inputHandler.GetParameterValue("i"));
+                bool useStrictCompare = inputHandler.TryGetCommand("strict");
+                int maximumPoints = int.Parse(inputHandler.GetParameterValue("points"));
+                uint texcoordAccuracy = uint.Parse(inputHandler.GetParameterValue("accuracy"));
+                string referenceMaterialPath = inputHandler.GetParameterValue("mats");
+                var materialResource = new MaterialResources(referenceMaterialPath);
+
+                bool matchesFound = TryFindReplacementMat(inputMaterial, materialResource, out List<MaterialComparer>? matches, useStrictCompare, maximumPoints, texcoordAccuracy);
+
+                if (!matchesFound)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\nNo matches");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }    
+                else
+                {
+                    PrintFindReplacementResults(matches);
+                }
             }
             else
             {

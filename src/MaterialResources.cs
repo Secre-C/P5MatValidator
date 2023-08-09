@@ -7,54 +7,55 @@ namespace P5MatValidator
 {
     public class MaterialResources
     {
-        internal Resource? inputResource { get; private set; }
-        internal string? inputFilePath { get; private set; }
-        internal string? referenceMaterialPath { get; private set; }
-        internal List<Material>? inputMaterials { get; private set; } = new();
-        internal List<ReferenceMaterial>? referenceMaterials { get; private set; } = new();
+        internal Resource InputResource { get; private set; } = new ModelPack();
+        internal string InputFilePath { get; private set; } = string.Empty;
+        internal string ReferenceMaterialPath { get; private set; } = string.Empty;
+        internal List<Material> InputMaterials { get; private set; } = new();
+        internal List<ReferenceMaterial> ReferenceMaterials { get; private set; } = new();
 
         public MaterialResources(string referenceMaterialPath)
         {
-            this.referenceMaterialPath = referenceMaterialPath;
+            ReferenceMaterialPath = referenceMaterialPath;
             GetReferenceMaterials();
         }
         public MaterialResources(string inputFilePath, string referenceMaterialPath)
         {
-            this.inputFilePath = inputFilePath;
-            this.referenceMaterialPath = referenceMaterialPath;
+            InputFilePath = inputFilePath;
+            ReferenceMaterialPath = referenceMaterialPath;
 
-            inputResource = Resource.Load(inputFilePath);
-            var getInputFileMaterials = GenerateMaterialList(inputResource, inputFilePath);
+            InputResource = Resource.Load(inputFilePath);
+            Task<ReferenceMaterial> getInputFileMaterials = new(() => GenerateMaterialList(InputResource, inputFilePath));
+            getInputFileMaterials.Start();
 
             GetReferenceMaterials();
 
-            inputMaterials = getInputFileMaterials.Result.materials;
+            InputMaterials = getInputFileMaterials.Result.materials;
         }
 
         private void GetReferenceMaterials()
         {
             string[] fileExtensions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
-            List<string> referenceMaterialFiles = GetFiles(referenceMaterialPath, fileExtensions, SearchOption.AllDirectories);
+            List<string> referenceMaterialFiles = GetFiles(ReferenceMaterialPath, fileExtensions, SearchOption.AllDirectories);
 
             foreach (var referenceMaterialFile in referenceMaterialFiles)
             {
                 try
                 {
-                    referenceMaterials.Add(GenerateMaterialList(referenceMaterialFile).Result);
+                    ReferenceMaterials.Add(GenerateMaterialList(referenceMaterialFile));
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //throw new Exception($"Unhandled Exception when Generating Material List for \"{referenceMaterialFile}\" {ex}");
                 }
             }
         }
 
-        internal async Task<ReferenceMaterial> GenerateMaterialList(string filePath)
+        internal ReferenceMaterial GenerateMaterialList(string filePath)
         {
-            return await GenerateMaterialList(Resource.Load(filePath), filePath);
+            return GenerateMaterialList(Resource.Load(filePath), filePath);
         }
 
-        internal async Task<ReferenceMaterial> GenerateMaterialList(Resource gfdResource, string filePath)
+        internal ReferenceMaterial GenerateMaterialList(Resource gfdResource, string filePath)
         {
             ReferenceMaterial materialInfo = new();
 
@@ -63,7 +64,7 @@ namespace P5MatValidator
             {
                 var model = (ModelPack)gfdResource;
                 materialInfo.materials = (List<Material>)model.Materials.Materials;
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialPath, filePath);
+                materialInfo.fileName = Path.GetRelativePath(ReferenceMaterialPath, filePath);
 
                 return materialInfo;
             }
@@ -71,20 +72,20 @@ namespace P5MatValidator
             {
                 var matDict = (MaterialDictionary)gfdResource;
                 materialInfo.materials = (List<Material>)matDict.Materials;
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialPath, filePath);
+                materialInfo.fileName = Path.GetRelativePath(ReferenceMaterialPath, filePath);
 
                 return materialInfo;
             }
             else if (gfdResource.ResourceType == ResourceType.Material)
             {
-                var mat = (Material)gfdResource;
+                Material mat = (Material)gfdResource;
 
                 materialInfo.materials = new List<Material>
                 {
                     mat
                 };
 
-                materialInfo.fileName = Path.GetRelativePath(referenceMaterialPath, filePath);
+                materialInfo.fileName = Path.GetRelativePath(ReferenceMaterialPath, filePath);
 
                 return materialInfo;
             }
@@ -95,7 +96,7 @@ namespace P5MatValidator
             }
         }
 
-        internal struct ReferenceMaterial
+        public struct ReferenceMaterial
         {
             internal List<Material> materials;
             internal string fileName;

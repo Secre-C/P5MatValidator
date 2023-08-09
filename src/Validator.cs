@@ -1,5 +1,5 @@
 ﻿using GFDLibrary.Materials;
-using static P5MatValidator.Comparisons;
+using static P5MatValidator.MaterialComparer;
 
 namespace P5MatValidator
 {
@@ -33,15 +33,15 @@ namespace P5MatValidator
 
             foreach ( var material in materialValidationResults ) 
             {
-                if (material.materialValidity == MaterialValididty.Valid)
+                if (material.materialValidity == MaterialValidity.Valid)
                 {
                     validMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
                 }
-                else if (material.materialValidity == MaterialValididty.Invalid)
+                else if (material.materialValidity == MaterialValidity.Invalid)
                 {
                     invalidMats.Add($"{material.materialName}");
                 }
-                else if (material.materialValidity == MaterialValididty.SameName)
+                else if (material.materialValidity == MaterialValidity.SameName)
                 {
                     sameNameMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
                 }
@@ -51,7 +51,7 @@ namespace P5MatValidator
             {
                 //Valid Mats
                 Console.WriteLine("\n===============================================");
-                Console.WriteLine($"{Path.GetFileName(materialResources.inputFilePath)}:");
+                Console.WriteLine($"{Path.GetFileName(materialResources.InputFilePath)}:");
 
                 Console.WriteLine("===============================================");
 
@@ -101,85 +101,44 @@ namespace P5MatValidator
         {
             List<Task<MaterialValidationResult>> compareTasks = new();
 
-            foreach (var material in materialResources.inputMaterials)
+            foreach (var royalMaterialDict in materialResources.InputMaterials)
             {
-                compareTasks.Add(CompareMaterial(material));
+                Task<MaterialValidationResult> compareTask = new(() => CompareMaterials(royalMaterialDict));
+                compareTask.Start();
+                compareTasks.Add(compareTask);
             }
 
             var result = Task.WhenAll(compareTasks).Result;
             materialValidationResults = result.ToList();
         }
 
-        internal async Task<MaterialValidationResult> CompareMaterial(Material royalMaterial)
+        internal MaterialValidationResult CompareMaterials(Material royalMaterial)
         {
-            MaterialValididty validity = MaterialValididty.Invalid;
+            MaterialValidity validity = MaterialValidity.Invalid;
             string matchingMat = "";
 
-            foreach (var referenceMaterial in materialResources.referenceMaterials)
+            for (int i = 0; i < materialResources.ReferenceMaterials.Count; i++)
             {
-                foreach (var material in referenceMaterial.materials)
+                MaterialResources.ReferenceMaterial referenceMaterial = materialResources.ReferenceMaterials[i];
+                for (int j = 0; j < referenceMaterial.materials.Count; j++)
                 {
+                    Material material = referenceMaterial.materials[j];
                     if (material.Name == royalMaterial.Name)
                     {
-                        validity = MaterialValididty.SameName;
+                        validity = MaterialValidity.SameName;
                         matchingMat = referenceMaterial.fileName;
                     }
-                    if (useStrictCompare) //check these in strict mode
-                    {
-                        if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor))
-                            continue;
-                        if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor))
-                            continue;
-                        if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor))
-                            continue;
-                        if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor))
-                            continue;
-                        if (!AreEqual(material.Field40, royalMaterial.Field40)) //reflectivity
-                            continue;
-                        if (!AreEqual(material.Field44, royalMaterial.Field44)) //outline index
-                            continue;
-                        if (!AreEqual(material.Field4A, royalMaterial.Field4A))
-                            continue;
-                        if (!AreEqual(material.Field4C, royalMaterial.Field4C))
-                            continue;
-                        if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling))
-                            continue;
-                        if (!AreEqual(material.Field98, royalMaterial.Field98))
-                            continue;
-                    }
-                    if (!AreMatFlagsEqual(material.Flags, royalMaterial.Flags))
-                        continue;
-                    if (!AreEqual((byte)material.DrawMethod, (byte)royalMaterial.DrawMethod))
-                        continue;
-                    if (!AreEqual(material.Field49, royalMaterial.Field49))
-                        continue;
-                    if (!AreEqual(material.Field4B, royalMaterial.Field4B))
-                        continue;
-                    if (!AreEqual(material.Field4D, royalMaterial.Field4D)) //highlight blend mode
-                        continue;
-                    if (!AreEqual(material.Field90, royalMaterial.Field90))
-                        continue;
-                    if (!AreEqual(material.Field92, royalMaterial.Field92))
-                        continue;
-                    if (!AreEqual(material.Field94, royalMaterial.Field94))
-                        continue;
-                    if (!AreEqual(material.Field96, royalMaterial.Field96))
-                        continue;
-                    if (!AreEqual(material.Field5C, royalMaterial.Field5C))
-                        continue;
-                    if (!AreEqual(material.Field6C, royalMaterial.Field6C)) //texcoord1
-                        continue;
-                    if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
-                        continue;
-                    if (!AreAttributesEqual(material, royalMaterial, useStrictCompare))
-                        continue;
 
-                    validity = MaterialValididty.Valid;
-                    matchingMat = $"{material.Name} ({referenceMaterial.fileName})";
-                    break;
+                    validity = CompareMaterial(material, royalMaterial, useStrictCompare) == 0 ? MaterialValidity.Valid : validity;
+
+                    if (validity == MaterialValidity.Valid)
+                    {
+                        matchingMat = $"{material.Name} ({referenceMaterial.fileName})";
+                        break;
+                    }
                 }
 
-                if (validity == MaterialValididty.Valid)
+                if (validity == MaterialValidity.Valid)
                     break;
             }
 
@@ -193,23 +152,24 @@ namespace P5MatValidator
 
         internal bool IsMaterialValid(string materialName)
         {
-            return materialValidationResults.Any(validatorResult => validatorResult.materialName == materialName &&
-                (validatorResult.materialValidity == MaterialValididty.Invalid || validatorResult.materialValidity == MaterialValididty.SameName));
+            return materialValidationResults.Any(validatorResult => 
+            validatorResult.materialName == materialName && 
+            (validatorResult.materialValidity == MaterialValidity.Invalid || validatorResult.materialValidity == MaterialValidity.SameName));
         }
 
-        internal bool IsMaterialValid(MaterialValidationResult result)
+        internal static bool IsMaterialValid(MaterialValidationResult result)
         {
-            return result.materialValidity == MaterialValididty.Valid;
+            return result.materialValidity == MaterialValidity.Valid;
         }
 
         internal struct MaterialValidationResult
         {
             internal string materialName;
-            internal MaterialValididty materialValidity;
+            internal MaterialValidity materialValidity;
             internal string matchingMaterialPath;
         }
 
-        internal enum MaterialValididty : int
+        internal enum MaterialValidity : int
         {
             Valid,
             Invalid,
