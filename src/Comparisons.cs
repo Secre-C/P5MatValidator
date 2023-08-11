@@ -1,7 +1,6 @@
 ﻿using GFDLibrary.Materials;
 using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
-using static P5MatValidator.Program;
+using System.Text.Json;
 
 namespace P5MatValidator
 {
@@ -26,60 +25,55 @@ namespace P5MatValidator
         }
 
 
-        internal static int CompareMaterial(Material material, Material royalMaterial, bool useStrictCompare = false, uint texcoordAccuracy = 0)
+        internal static int CompareMaterial(Material material, Material royalMaterial, MaterialPoints materialPoints, bool useStrictCompare = false, uint texcoordAccuracy = 0)
         {
             int points = 0; //add points for each non matching mat
 
             if (useStrictCompare) //check these in strict mode
             {
                 if (!AreColorsEqual(material.AmbientColor, royalMaterial.AmbientColor))
-                    points++;
+                    points += materialPoints.AmbientColor;
                 if (!AreColorsEqual(material.DiffuseColor, royalMaterial.DiffuseColor))
-                    points++;
+                    points += materialPoints.DiffuseColor;
                 if (!AreColorsEqual(material.SpecularColor, royalMaterial.SpecularColor))
-                    points++;
+                    points += materialPoints.SpecularColor;
                 if (!AreColorsEqual(material.EmissiveColor, royalMaterial.EmissiveColor))
-                    points++;
+                    points += materialPoints.EmissiveColor;
                 if (!AreEqual(material.Field40, royalMaterial.Field40)) //reflectivity
-                    points++;
+                    points += materialPoints.Field40_Reflectivity;
                 if (!AreEqual(material.Field44, royalMaterial.Field44)) //outline index
-                    points++;
+                    points += materialPoints.Field44_Outline_Index;
                 if (!AreEqual(material.Field4A, royalMaterial.Field4A))
-                    points++;
+                    points += materialPoints.Field4A;
                 if (!AreEqual(material.Field4C, royalMaterial.Field4C))
-                    points++;
+                    points += materialPoints.Field4C;
                 if (!AreEqual(material.DisableBackfaceCulling, royalMaterial.DisableBackfaceCulling))
-                    points++;
+                    points += materialPoints.DisableBackfaceCulling;
                 if (!AreEqual(material.Field98, royalMaterial.Field98))
-                    points++;
+                    points += materialPoints.Field98;
             }
 
-            int flagCompare = CompareMaterialFlags(material.Flags, royalMaterial.Flags);
-            if (flagCompare == -1)
-            {
-                return -1;
-            }
-            else
-                points += flagCompare * 2;
+            int flagCompare = CompareMaterialFlags(material.Flags, royalMaterial.Flags, materialPoints);
+            points += flagCompare * 2;
 
             if (!AreEqual((byte)material.DrawMethod, (byte)royalMaterial.DrawMethod))
-                return -1;
+                points += materialPoints.DrawMethod;
             if (!AreEqual(material.Field49, royalMaterial.Field49))
-                points++;
+                points += materialPoints.Field49;
             if (!AreEqual(material.Field4B, royalMaterial.Field4B))
-                points++;
+                points += materialPoints.Field4B;
             if (!AreEqual(material.Field4D, royalMaterial.Field4D)) //highlight blend mode
-                points += 2;
+                points += materialPoints.Field4D;
             if (!AreEqual(material.Field90, royalMaterial.Field90))
-                points++;
+                points += materialPoints.Field90;
             if (!AreEqual(material.Field92, royalMaterial.Field92))
-                points++;
+                points += materialPoints.Field92;
             if (!AreEqual(material.Field94, royalMaterial.Field94))
-                points += 2;
+                points += materialPoints.Field94;
             if (!AreEqual(material.Field96, royalMaterial.Field96))
-                points++;
+                points += materialPoints.Field96;
             if (!AreEqual(material.Field5C, royalMaterial.Field5C))
-                points++;
+                points += materialPoints.Field5C;
             if (!AreEqual(material.Field6C, royalMaterial.Field6C)) //texcoord1
             {
                 int texcoordAccuracyResult = FindReducedTexcoord(material.Field6C, royalMaterial.Field6C, texcoordAccuracy);
@@ -231,9 +225,9 @@ namespace P5MatValidator
             return compareTexcoord.TestTexcoord(inputValue, accuracy);
         }
 
-        internal static int CompareMaterialFlags(MaterialFlags a, MaterialFlags b)
+        internal static int CompareMaterialFlags(MaterialFlags a, MaterialFlags b, MaterialPoints materialPoints)
         {
-            static int mats_have_flag(MaterialFlags a, MaterialFlags b, MaterialFlags flag)
+            static int mat_flags_match(MaterialFlags a, MaterialFlags b, MaterialFlags flag)
             {
                 return (a.HasFlag(flag) == b.HasFlag(flag)) ? 0 : 1;
             }
@@ -243,53 +237,25 @@ namespace P5MatValidator
 
             int points = 0;
 
-            points += mats_have_flag(a, b, MaterialFlags.Bit0);
-            points += mats_have_flag(a, b, MaterialFlags.Bit1);
-            points += mats_have_flag(a, b, MaterialFlags.Bit2);
-            points += mats_have_flag(a, b, MaterialFlags.Bit3);
-            //points += mats_have_flag(a, b, MaterialFlags.EnableVertColors);
-
-            if (mats_have_flag(a, b, MaterialFlags.EnableVertColors) != 0)
-                return -1;
-
-            points += mats_have_flag(a, b, MaterialFlags.OpaqueAlpha1);
-            points += mats_have_flag(a, b, MaterialFlags.Bit6);
-            //points += mats_have_flag(a, b, MaterialFlags.EnableLight);
-
-            if (mats_have_flag(a, b, MaterialFlags.EnableLight) != 0)
-                return -1;
-
-            points += mats_have_flag(a, b, MaterialFlags.Bit8);
-            points += mats_have_flag(a, b, MaterialFlags.Bit9);
-            points += mats_have_flag(a, b, MaterialFlags.Bit10);
-            //points += mats_have_flag(a, b, MaterialFlags.EnableLight2);
-
-            if (mats_have_flag(a, b, MaterialFlags.EnableLight2) != 0)
-                return -1;
-
-            //points += mats_have_flag(a, b, MaterialFlags.OpaqueAlpha2);
-
-            if (mats_have_flag(a, b, MaterialFlags.OpaqueAlpha2) != 0)
-                return -1;
-
-            points += mats_have_flag(a, b, MaterialFlags.ReceiveShadow);
-            points += mats_have_flag(a, b, MaterialFlags.CastShadow);
-            //points += mats_have_flag(a, b, MaterialFlags.HasAttributes);
-
-            if (mats_have_flag(a, b, MaterialFlags.HasAttributes) != 0)
-                return -1;
-
-            //points += mats_have_flag(a, b, MaterialFlags.HasOutline);
-
-            if (mats_have_flag(a, b, MaterialFlags.HasOutline) != 0)
-                return -1;
-
-            //points += mats_have_flag(a, b, MaterialFlags.Bit18);
-
-            if (mats_have_flag(a, b, MaterialFlags.Bit18) != 0)
-                return -1;
-
-            points += mats_have_flag(a, b, MaterialFlags.DisableBloom);
+            points += mat_flags_match(a, b, MaterialFlags.Bit0) * materialPoints.Bit0;
+            points += mat_flags_match(a, b, MaterialFlags.Bit1) * materialPoints.Bit1;
+            points += mat_flags_match(a, b, MaterialFlags.Bit2) * materialPoints.Bit2;
+            points += mat_flags_match(a, b, MaterialFlags.Bit3) * materialPoints.Bit3;
+            points += mat_flags_match(a, b, MaterialFlags.EnableVertColors) * materialPoints.EnableVertColors;
+            points += mat_flags_match(a, b, MaterialFlags.OpaqueAlpha1) * materialPoints.OpaqueAlpha1;
+            points += mat_flags_match(a, b, MaterialFlags.Bit6) * materialPoints.Bit6;
+            points += mat_flags_match(a, b, MaterialFlags.EnableLight) * materialPoints.EnableLight;
+            points += mat_flags_match(a, b, MaterialFlags.Bit8) * materialPoints.Bit8;
+            points += mat_flags_match(a, b, MaterialFlags.Bit9) * materialPoints.Bit9;
+            points += mat_flags_match(a, b, MaterialFlags.Bit10) * materialPoints.Bit10;
+            points += mat_flags_match(a, b, MaterialFlags.EnableLight2) * materialPoints.EnableLight2;
+            points += mat_flags_match(a, b, MaterialFlags.OpaqueAlpha2) * materialPoints.OpaqueAlpha2;
+            points += mat_flags_match(a, b, MaterialFlags.ReceiveShadow) * materialPoints.ReceiveShadow;
+            points += mat_flags_match(a, b, MaterialFlags.CastShadow) * materialPoints.CastShadow;
+            points += mat_flags_match(a, b, MaterialFlags.HasAttributes) * materialPoints.HasAttributes;
+            points += mat_flags_match(a, b, MaterialFlags.HasOutline) * materialPoints.HasOutline;
+            points += mat_flags_match(a, b, MaterialFlags.Bit18) * materialPoints.Bit18;
+            points += mat_flags_match(a, b, MaterialFlags.DisableBloom) * materialPoints.DisableBloom;
             //points += mats_have_flag(a, b, MaterialFlags.HasDiffuseMap);
             //points += mats_have_flag(a, b, MaterialFlags.HasNormalMap);
             //points += mats_have_flag(a, b, MaterialFlags.HasSpecularMap);
@@ -299,15 +265,89 @@ namespace P5MatValidator
             //points += mats_have_flag(a, b, MaterialFlags.HasNightMap);
             //points += mats_have_flag(a, b, MaterialFlags.HasDetailMap);
             //points += mats_have_flag(a, b, MaterialFlags.HasShadowMap);
-            points += mats_have_flag(a, b, MaterialFlags.Bit29);
-            //points += mats_have_flag(a, b, MaterialFlags.Bit30);
-
-            if (mats_have_flag(a, b, MaterialFlags.Bit30) != 0)
-                return -1;
-
-            points += mats_have_flag(a, b, MaterialFlags.Bit31);
+            points += mat_flags_match(a, b, MaterialFlags.Bit29) * materialPoints.Bit29;
+            points += mat_flags_match(a, b, MaterialFlags.Bit30) * materialPoints.Bit30;
+            points += mat_flags_match(a, b, MaterialFlags.Bit31) * materialPoints.Bit31;
 
             return points;
+        }
+    }
+
+    public class MaterialPoints
+    {
+        public int AmbientColor { get; set; } = 1;
+        public int DiffuseColor { get; set; } = 1;
+        public int SpecularColor { get; set; } = 1;
+        public int EmissiveColor { get; set; } = 1;
+
+        //Material Flags
+        public int Bit0 { get; set; } = 1;
+        public int Bit1 { get; set; } = 1;
+        public int Bit2 { get; set; } = 1;
+        public int Bit3 { get; set; } = 1;
+        public int EnableVertColors { get; set; } = 1000;
+        public int OpaqueAlpha1 { get; set; } = 1;
+        public int Bit6 { get; set; } = 1;
+        public int EnableLight { get; set; } = 1;
+        public int Bit8 { get; set; } = 1;
+        public int Bit9 { get; set; } = 1;
+        public int Bit10 { get; set; } = 1;
+        public int EnableLight2 { get; set; } = 1000;
+        public int PurpleWireframe { get; set; } = 1000;
+        public int OpaqueAlpha2 { get; set; } = 1000;
+        public int ReceiveShadow { get; set; } = 1;
+        public int CastShadow { get; set; } = 1;
+        public int HasAttributes { get; set; } = 1000;
+        public int HasOutline { get; set; } = 1000;
+        public int Bit18 { get; set; } = 1000;
+        public int DisableBloom { get; set; } = 1;
+        public int Bit29 { get; set; } = 1;
+        public int Bit30 { get; set; } = 1000;
+        public int Bit31 { get; set; } = 1;
+
+        public int DrawMethod { get; set; } = 1000;
+        public int Field49 { get; set; } = 1;
+        public int Field4B { get; set; } = 1;
+        public int Field4D { get; set; } = 2; //highlight map blend mode
+        public int Field90 { get; set; } = 0;
+        public int Field92 { get; set; } = 1;
+        public int Field94 { get; set; } = 2;
+        public int Field96 { get; set; } = 1;
+        public int Field5C { get; set; } = 1;
+
+        //Strict Mode Values
+        public int Field40_Reflectivity { get; set; } = 1;
+        public int Field44_Outline_Index { get; set; } = 1;
+        public int Field4A { get; set; } = 1;
+        public int Field4C { get; set; } = 1;
+        public int DisableBackfaceCulling { get; set; } = 0;
+        public int Field98 { get; set; } = 1;
+
+        public static MaterialPoints GetMaterialPoints()
+        {
+            string strExeFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            string? strWorkPath = Path.GetDirectoryName(strExeFilePath);
+            string matPointPath = strWorkPath + "/MaterialPoints.json";
+
+            if (File.Exists(matPointPath))
+            {
+                MaterialPoints? pointsjson = JsonSerializer.Deserialize<MaterialPoints>(File.ReadAllText(matPointPath));
+
+                if (pointsjson != null)
+                {
+                    Utils.DebugLog("Loaded External Point Values");
+                    return pointsjson;
+                }
+            }
+
+            MaterialPoints points = new();
+            WriteMatPointJson(points, matPointPath);
+            return points;
+        }
+
+        private static void WriteMatPointJson(MaterialPoints points, string path)
+        {
+            File.WriteAllText(path, JsonSerializer.Serialize(points, new JsonSerializerOptions { WriteIndented = true }));
         }
     }
 }

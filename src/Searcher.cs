@@ -2,6 +2,7 @@
 using static P5MatValidator.Utils;
 using static P5MatValidator.MaterialResources;
 using static P5MatValidator.MaterialComparer;
+using static P5MatValidator.MaterialPoints;
 using System.Text.RegularExpressions;
 
 namespace P5MatValidator
@@ -96,12 +97,13 @@ namespace P5MatValidator
                 throw new NullReferenceException(nameof(materialResource));
 
             outputMaterials = new();
+            MaterialPoints materialPoints = GetMaterialPoints();
 
             foreach (ReferenceMaterial referenceDict in materialResource.ReferenceMaterials)
             {
                 foreach (Material reference in referenceDict.materials)
                 {
-                    int compareResult = CompareMaterial(reference, inputMaterial, useStrictCompare, texcoordAccuracy);
+                    int compareResult = CompareMaterial(reference, inputMaterial, materialPoints, useStrictCompare, texcoordAccuracy);
 
                     if (compareResult != -1 && compareResult <= maximumPoints)
                         outputMaterials.Add(new MaterialComparer(reference, compareResult, referenceDict.fileName));

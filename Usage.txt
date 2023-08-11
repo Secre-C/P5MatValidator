@@ -21,8 +21,11 @@ Parameters:
 		"-i" -- input path
 		"-preset" -- material convert preset path
 		"-mats" -- material dump path
+		"-accuracy" -- the amount of texcoords that are allowed to be excluded. default is one
+		"-points" -- the maximum amount of points a mat can have before being disqualified. default is 20
 		"!strict" -- Strict validate mode
-		Example: [ -i model.GFS -mats folder/matdump  -preset matPreest.yml !convert !strict]
+		"!onlypreset" -- convert all invalid mats to a material preset
+		Example: [ -i model.GFS -mats folder/matdump  -preset matPreset.yml !convert !strict -accuracy 2 -points 15 ]
 
 	Search: search for a model that matches a specification
 		"-mats" -- material dump path

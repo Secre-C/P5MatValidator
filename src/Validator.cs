@@ -100,10 +100,11 @@ namespace P5MatValidator
         private void CompareAllMaterials()
         {
             List<Task<MaterialValidationResult>> compareTasks = new();
+            MaterialPoints materialPoints = MaterialPoints.GetMaterialPoints();
 
             foreach (var royalMaterialDict in materialResources.InputMaterials)
             {
-                Task<MaterialValidationResult> compareTask = new(() => CompareMaterials(royalMaterialDict));
+                Task<MaterialValidationResult> compareTask = new(() => CompareMaterials(royalMaterialDict, materialPoints));
                 compareTask.Start();
                 compareTasks.Add(compareTask);
             }
@@ -112,7 +113,7 @@ namespace P5MatValidator
             materialValidationResults = result.ToList();
         }
 
-        internal MaterialValidationResult CompareMaterials(Material royalMaterial)
+        internal MaterialValidationResult CompareMaterials(Material royalMaterial, MaterialPoints materialPoints)
         {
             MaterialValidity validity = MaterialValidity.Invalid;
             string matchingMat = "";
@@ -129,7 +130,7 @@ namespace P5MatValidator
                         matchingMat = referenceMaterial.fileName;
                     }
 
-                    validity = CompareMaterial(material, royalMaterial, useStrictCompare) == 0 ? MaterialValidity.Valid : validity;
+                    validity = CompareMaterial(material, royalMaterial, materialPoints, useStrictCompare) == 0 ? MaterialValidity.Valid : validity;
 
                     if (validity == MaterialValidity.Valid)
                     {
@@ -152,7 +153,7 @@ namespace P5MatValidator
 
         internal bool IsMaterialValid(string materialName)
         {
-            return materialValidationResults.Any(validatorResult => 
+            return !materialValidationResults.Any(validatorResult => 
             validatorResult.materialName == materialName && 
             (validatorResult.materialValidity == MaterialValidity.Invalid || validatorResult.materialValidity == MaterialValidity.SameName));
         }
