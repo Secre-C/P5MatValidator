@@ -9,7 +9,7 @@ namespace P5MatValidator
     public class InputHandler
     {
         internal readonly string[] Args;
-        internal readonly List<KeyValuePair<string, string>> Parameters = new();
+        internal readonly Dictionary<string, string> Parameters = new();
         internal readonly List<string> Commands = new();
         public InputHandler(string[] input) 
         {
@@ -21,7 +21,7 @@ namespace P5MatValidator
                 {
                     if (Args[i].StartsWith('-'))
                     {
-                        Parameters.Add(new KeyValuePair<string, string>(Args[i][1..].ToLower(), Args[i + 1].ToLower()));
+                        Parameters.Add(Args[i][1..].ToLower(), Args[i + 1].ToLower());
                         i += 2;
                     }
                     else if (Args[i].StartsWith('!'))
@@ -47,52 +47,13 @@ namespace P5MatValidator
 
         }
 
-        internal bool TryGetCommand(string command)
-        {
-            return Commands.Contains(command.ToLower());
-        }
+        internal bool HasCommand(string command)
+            => Commands.Contains(command.ToLower());
 
         internal string GetParameterValue(string key)
-        {
-            foreach(var param in Parameters)
-            {
-                if (param.Key == key.ToLower())
-                    return param.Value;
-            }
-
-            throw new KeyNotFoundException($"Couldn't find arg key \"{key}\"");
-        }
+            => Parameters[key];
 
         internal bool TryGetParameterValue(string key, out string value)
-        {
-            try
-            {
-                value = GetParameterValue(key.ToLower());
-                return true;
-            }
-            catch (KeyNotFoundException)
-            {
-                Utils.DebugLog($"Could not find Key \"{key}\"");
-                value = string.Empty;
-                return false;
-            }
-        }
-    }
-
-    public class KeyNotFoundException : Exception 
-    {
-        public KeyNotFoundException()
-        {
-        }
-
-        public KeyNotFoundException(string message)
-            : base(message)
-        {
-        }
-
-        public KeyNotFoundException(string message, Exception inner)
-        : base(message, inner)
-        {
-        }
+            => Parameters.TryGetValue(key, out value);
     }
 }

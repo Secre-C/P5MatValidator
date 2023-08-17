@@ -36,18 +36,18 @@ namespace P5MatValidator
             Stopwatch.Start();
 
             //run commands based on 
-            if (inputHandler.TryGetCommand("validate") || inputHandler.TryGetCommand("convert"))
+            if (inputHandler.HasCommand("validate") || inputHandler.HasCommand("convert"))
             {
                 string fileInput = inputHandler.GetParameterValue("i");
                 string materialReferenceDump = inputHandler.GetParameterValue("mats");
 
                 MaterialResources materialResource = new(fileInput, materialReferenceDump);
-                Validator validator = new(materialResource, inputHandler.TryGetCommand("strict"));
+                Validator validator = new(materialResource, inputHandler.HasCommand("strict"));
 
                 validator.RunValidation();
                 validator.PrintValidationResults();
 
-                if (inputHandler.TryGetCommand("convert"))
+                if (inputHandler.HasCommand("convert"))
                 {
                     if (!inputHandler.TryGetParameterValue("o", out string modelOutputPath))
                         modelOutputPath = materialResource.InputFilePath;
@@ -64,13 +64,13 @@ namespace P5MatValidator
 
                 CreateCombinedMat(materialResource, outputFilePath, materialVersion);
             }
-            else if (inputHandler.TryGetCommand("dump"))
+            else if (inputHandler.HasCommand("dump"))
             {
                 string resourceInputDir = inputHandler.GetParameterValue("i");
                 string outputDir = inputHandler.GetParameterValue("o");
                 DumpMats(resourceInputDir, outputDir);
             }
-            else if (inputHandler.TryGetCommand("search"))
+            else if (inputHandler.HasCommand("search"))
             {
                 string referenceMaterialPath = inputHandler.GetParameterValue("mats");
                 var materialResource = new MaterialResources(referenceMaterialPath);
@@ -78,10 +78,10 @@ namespace P5MatValidator
                 materialSearcher.SearchForMaterial(materialResource);
                 materialSearcher.PrintSearchResults();
             }
-            else if (inputHandler.TryGetCommand("findsimilar"))
+            else if (inputHandler.HasCommand("findsimilar"))
             {
                 Material inputMaterial = (Material)Resource.Load(inputHandler.GetParameterValue("i"));
-                bool useStrictCompare = inputHandler.TryGetCommand("strict");
+                bool useStrictCompare = inputHandler.HasCommand("strict");
                 int maximumPoints = int.Parse(inputHandler.GetParameterValue("points"));
                 uint texcoordAccuracy = uint.Parse(inputHandler.GetParameterValue("accuracy"));
                 string referenceMaterialPath = inputHandler.GetParameterValue("mats");
@@ -99,6 +99,17 @@ namespace P5MatValidator
                 {
                     PrintFindReplacementResults(matches);
                 }
+            }
+            else if (inputHandler.HasCommand("test"))
+            {
+                string resourceInput = inputHandler.GetParameterValue("i");
+                string modOutputPath = inputHandler.GetParameterValue("o");
+                string yamlPresetPath = inputHandler.GetParameterValue("preset");
+                string cpkMakePath = inputHandler.GetParameterValue("cpkmakec");
+
+                var resource = Resource.Load(resourceInput);
+
+                MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath);
             }
             else
             {

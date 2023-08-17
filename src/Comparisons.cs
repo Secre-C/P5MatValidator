@@ -170,59 +170,51 @@ namespace P5MatValidator
             return true;
         }
 
-        public static bool CheckAttributeTypes(Material material, Int32 type)
+        public static bool HasAttributeOfType(Material material, int type, out int attributeIndex)
         {
             if (!material.Flags.HasFlag(MaterialFlags.HasAttributes))
             {
                 if (type == -1)
+                {
+                    attributeIndex = -1;
                     return true;
+                }
 
+                attributeIndex = -1;
                 return false;
             }
 
+            var attr = material.Attributes;
 
-            foreach (var attr in material.Attributes)
+            for (int i = 0; i < attr.Count; i++)
             {
-                if (type == 0 && attr.AttributeType == MaterialAttributeType.Type0)
+                if (type == (int)attr[i].AttributeType)
+                {
+                    attributeIndex = i;
                     return true;
-                if (type == 1 && attr.AttributeType == MaterialAttributeType.Type1)
-                    return true;
-                if (type == 2 && attr.AttributeType == MaterialAttributeType.Type2)
-                    return true;
-                if (type == 3 && attr.AttributeType == MaterialAttributeType.Type3)
-                    return true;
-                if (type == 4 && attr.AttributeType == MaterialAttributeType.Type4)
-                    return true;
-                if (type == 5 && attr.AttributeType == MaterialAttributeType.Type5)
-                    return true;
-                if (type == 6 && attr.AttributeType == MaterialAttributeType.Type6)
-                    return true;
-                if (type == 7 && attr.AttributeType == MaterialAttributeType.Type7)
-                    return true;
-                if (type == 8 && attr.AttributeType == MaterialAttributeType.Type8)
-                    return true;
+                }
             }
 
+            attributeIndex = -1;
             return false;
 
         }
 
-        public static int FindReducedTexcoord(uint compareValue, uint inputValue, uint accuracy)
+        public static int FindReducedTexcoord(uint referenceValue, uint inputValue, uint accuracy)
         {
-            if (compareValue == inputValue)
+            if (referenceValue == inputValue)
             {
                 return 0;
             }
-            else
+            else if (((referenceValue == 0xFFFFFFFF) != (inputValue == 0xFFFFFFFF)) || accuracy == 0) //if only one value is -1 
             {
-                if (accuracy == 0)
-                    return -1;
+                return -1;
             }
 
 
-            var compareTexcoord = new Texcoord(compareValue);
+            Texcoord referenceTexcoord = new (referenceValue);
 
-            return compareTexcoord.TestTexcoord(inputValue, accuracy);
+            return referenceTexcoord.TestTexcoord(inputValue, accuracy);
         }
 
         internal static int CompareMaterialFlags(MaterialFlags a, MaterialFlags b, MaterialPoints materialPoints)
@@ -322,6 +314,16 @@ namespace P5MatValidator
         public int Field4C { get; set; } = 1;
         public int DisableBackfaceCulling { get; set; } = 0;
         public int Field98 { get; set; } = 1;
+
+        public int Texcoord_Diffuse { get; set; } = 1000;
+        public int Texcoord_Normal { get; set; } = 4;
+        public int Texcoord_Specular { get; set; } = 4;
+        public int Texcoord_Reflection { get; set; } = 4;
+        public int Texcoord_Highlight { get; set; } = 4;
+        public int Texcoord_Glow { get; set; } = 4;
+        public int Texcoord_Night { get; set; } = 4;
+        public int Texcoord_Detail { get; set; } = 4;
+        public int Texcoord_Shadow { get; set; } = 4;
 
         public static MaterialPoints GetMaterialPoints()
         {

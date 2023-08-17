@@ -2,44 +2,50 @@ P5MatValidator By SecreC.
 
 Usage: <-parameter key> <parameter value>... <!commands>
 
-Commands:
-	!validate
-	!strict
-	!convert
-	!search
-	!dump
-
-Parameters:
+Parameters and Commands:
 
 	Validator: compare mats and print valid/invalid mats
+		required: "!validate"
 		"-i" -- input path
 		"-mats" -- material dump path
 		"!strict" -- Strict validate mode
 		Example: [ -i model.GFS -mats folder/matdump !validate !strict]
 
-	Converter: convert invalid mats to a prest
+	Converter: convert invalid mats either using a similar material or a preset
+		required: "!convert"
 		"-i" -- input path
 		"-preset" -- material convert preset path
 		"-mats" -- material dump path
-		"-accuracy" -- the amount of texcoords that are allowed to be excluded. default is one
+		"-accuracy" -- the amount of texcoords that are allowed to be excluded. default is 2
 		"-points" -- the maximum amount of points a mat can have before being disqualified. default is 20
 		"!strict" -- Strict validate mode
 		"!onlypreset" -- convert all invalid mats to a material preset
-		Example: [ -i model.GFS -mats folder/matdump  -preset matPreset.yml !convert !strict -accuracy 2 -points 15 ]
+		Example: [ -i model.GFS -mats folder/matdump  -preset matPreset.yml !convert !strict -accuracy 3 -points 15 ]
 
 	Search: search for a model that matches a specification
+		required: "!search"
 		"-mats" -- material dump path
 		Search Usage:
 			"!search ?<material Parameter> <parameter value> <optional: texcoord accuracy index>"
 			Example: [ !search -mats folder/materialDump ?enablevertcolors 1 ?hasattributes 4 ?texcoord1 0xFF241038 3 ]
 
 	Dump: Dump materials of all models in a path
+		required: "!dump"
 		"-i" -- models directory
 		"-o" -- output material dump
 		Example: [ !dump -i data_cpk/model -o folder/matDump ]
 
 	Combine: Combine all materials in a path into a single file
-		required usage: [ -convert <materialVersion> ]
+		required usage: [ -combine <materialVersion> ]
 		"-i" -- material dump path
 		"-o" -- output material file path
-		Example: [ -i folder/matDump -o folder/combinedMats.gmtd -convert 17846528 ]
+		Example: [ -i folder/matDump -o folder/combinedMats.gmtd -combine 17846528 ]
+
+	Test: Apply materials one by one and automatically build cpk to test in game.
+		required: "!test"
+		"-i" -- model or material dictionary path
+		"-o" -- mod output folder path
+		"-preset" -- material preset yml path. if the material has no diffuse map, it'll use "1_gfdDefaultMat0.yml" in the same folder
+		"-cpkmakec" -- path to cpkmakec exe
+		Example: [ -i folder/model.GFS -o USRDIR/mod -preset folder/preset.yml -cpkmakec folder/cpkmakec.exe !test ]
+		

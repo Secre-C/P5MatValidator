@@ -8,7 +8,7 @@ namespace P5MatValidator
 {
     internal class Converter
     {
-        internal static void ConvertAllInvalidMaterials(Resource resource, InputHandler inputHandler, Validator validatorResults, string outputPath, MaterialResources? materialResources = null)
+        internal static void ConvertAllInvalidMaterials(Resource resource, InputHandler inputHandler, Validator validatorResults, string outputPath, MaterialResources materialResources)
         {
             MaterialDictionary matDict;
 
@@ -47,23 +47,27 @@ namespace P5MatValidator
 
         internal static Material ConvertMaterial(Material inputMaterial, InputHandler inputHandler, MaterialResources? materialResource = null)
         {
-            bool useOnlyPreset = inputHandler.TryGetCommand("onlypreset");
+            bool useOnlyPreset = inputHandler.HasCommand("onlypreset");
             string presetYamlPath = inputHandler.GetParameterValue("preset");
-            bool useStrictMode = inputHandler.TryGetCommand("strict");
             int maximumPoints = int.Parse(inputHandler.TryGetParameterValue("points", out string maxPoints) ? maxPoints : "20");
-            uint texcoordAccuracy = uint.Parse(inputHandler.TryGetParameterValue("accuracy", out string texAccuracy) ? texAccuracy : "1");
+            uint texcoordAccuracy = uint.Parse(inputHandler.TryGetParameterValue("accuracy", out string texAccuracy) ? texAccuracy : "2");
 
-            if (!useOnlyPreset && TryFindReplacementMat(inputMaterial, materialResource, out List<MaterialComparer>? outputMaterial, useStrictMode, maximumPoints, texcoordAccuracy) 
+            if (!useOnlyPreset && TryFindReplacementMat(inputMaterial, materialResource, out List<MaterialComparer>? outputMaterial, false, maximumPoints, texcoordAccuracy) 
                 && outputMaterial != null)
             {
                 Console.WriteLine($"replacing {inputMaterial.Name} with {outputMaterial[0].material.Name} from {outputMaterial[0].materialFilename}");
-                UpdateMaterialValues(outputMaterial[0].material, inputMaterial);
+                CopyMaterialValues(outputMaterial[0].material, inputMaterial);
                 return inputMaterial;
             }
             else
+            {
+                if (!useOnlyPreset)
+                    Console.WriteLine($"Failed to Convert {inputMaterial.Name}");
+
                 return GetPresetMaterial(inputMaterial, presetYamlPath);
+            }
         }
-        internal static void UpdateMaterialValues(Material referenceMaterial, Material inputMaterial)
+        internal static void CopyMaterialValues(Material referenceMaterial, Material inputMaterial)
         {
             //referenceMaterial.Name = inputMaterial.Name;
             //
@@ -73,8 +77,13 @@ namespace P5MatValidator
             //inputMaterial.EmissiveColor = referenceMaterial.EmissiveColor;
 
             inputMaterial.Flags = referenceMaterial.Flags;
-            inputMaterial.Field40 = referenceMaterial.Field40;
-            inputMaterial.Field44 = referenceMaterial.Field44;
+
+            if ((inputMaterial.Field40 == 1) != (referenceMaterial.Field40 == 1))
+                inputMaterial.Field40 = referenceMaterial.Field40;
+
+            if ((inputMaterial.Field44 == 0) != (referenceMaterial.Field44 == 0))
+                inputMaterial.Field44 = referenceMaterial.Field44;
+
             inputMaterial.DrawMethod = referenceMaterial.DrawMethod;
             inputMaterial.Field49 = referenceMaterial.Field49;
             inputMaterial.Field4A = referenceMaterial.Field4A;
@@ -87,10 +96,11 @@ namespace P5MatValidator
             inputMaterial.Field5C = referenceMaterial.Field5C;
             inputMaterial.Field6C = referenceMaterial.Field6C;
             inputMaterial.Field70 = referenceMaterial.Field70;
-            inputMaterial.DisableBackfaceCulling = referenceMaterial.DisableBackfaceCulling;
+            //inputMaterial.DisableBackfaceCulling = referenceMaterial.DisableBackfaceCulling;
             inputMaterial.Field98 = referenceMaterial.Field98;
 
-            inputMaterial.Attributes = referenceMaterial.Attributes;
+            //copy material attributes other than the flag
+            CopyAttributes(referenceMaterial, inputMaterial);
 
             if (referenceMaterial.DiffuseMap  == null)
                 inputMaterial.DiffuseMap = null;
@@ -110,6 +120,36 @@ namespace P5MatValidator
                 inputMaterial.DetailMap = null;
             if (referenceMaterial.ShadowMap == null)
                 inputMaterial.ShadowMap = null;
+        }
+        internal static void CopyAttributes(Material referenceMaterial, Material inputMaterial)
+        {
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (HasAttributeOfType(inputMaterial, i, out int inputAttrIndex) && HasAttributeOfType(referenceMaterial, i, out int refAttrIndex))
+                {
+                    if (i == 0)
+                    {
+                        MaterialAttributeType0 inputAttr = (MaterialAttributeType0)inputMaterial.Attributes[inputAttrIndex];
+                        MaterialAttributeType0 refAttr = (MaterialAttributeType0)referenceMaterial.Attributes[refAttrIndex];
+                        inputAttr.Type0Flags = refAttr.Type0Flags;
+                    }
+                    else if (i == 1)
+                    {
+                        MaterialAttributeType1 inputAttr = (MaterialAttributeType1)inputMaterial.Attributes[inputAttrIndex];
+                        MaterialAttributeType1 refAttr = (MaterialAttributeType1)referenceMaterial.Attributes[refAttrIndex];
+                        inputAttr.Type1Flags = refAttr.Type1Flags;
+                    }
+                    else if (i == 4)
+                    {
+                        MaterialAttributeType4 inputAttr = (MaterialAttributeType4)inputMaterial.Attributes[inputAttrIndex];
+                        MaterialAttributeType4 refAttr = (MaterialAttributeType4)referenceMaterial.Attributes[refAttrIndex];
+                        inputAttr.Field5C = refAttr.Field5C;
+                    }
+                    else
+                        inputMaterial.Attributes[inputAttrIndex] = referenceMaterial.Attributes[refAttrIndex];
+                }
+            }
         }
         internal static Material GetPresetMaterial(Material inputMaterial, string presetYamlPath)
         {
@@ -133,6 +173,18 @@ namespace P5MatValidator
             newMaterial.Name = name;
 
             return newMaterial;
+        }
+
+        internal static MaterialDictionary ConvertAllToPreset(MaterialDictionary inputDict, string yamlPresetPath)
+        {
+            MaterialDictionary newMaterialDict = new();
+
+            foreach (Material mat in inputDict.Materials)
+            {
+                newMaterialDict.Add(mat.Name, GetPresetMaterial(mat, yamlPresetPath));
+            }
+
+            return newMaterialDict;
         }
     }
 }

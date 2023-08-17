@@ -2,7 +2,7 @@
   "profiles": {
     "P5MatValidator": {
       "commandName": "Project",
-      "commandLineArgs": "!convert !strict -i \"E:\\emulators\\RPCS3_backup_files\\dev_hdd0\\game\\NPUB31848\\USRDIR\\mod\\model\\field_tex\\f062_023_0 - Copy.GFS\" -o \"E:\\emulators\\RPCS3_backup_files\\dev_hdd0\\game\\NPUB31848\\USRDIR\\mod\\model\\field_tex\\f062_023_0.GFS\" -preset \"D:\\Github\\the-royal-project\\Royal Palaces\\misc\\Scripts\\Material Validator\\Presets\\Common_Field.yml\" -mats \"D:\\Github\\the-royal-project\\Royal Palaces\\misc\\Scripts\\Material Validator\\mats\""
+      "commandLineArgs": "!convert -i \"E:\\emulators\\RPCS3_backup_files\\dev_hdd0\\game\\NPUB31848\\USRDIR\\mod\\model\\field_tex\\f062_023_0.GFS\" -o \"E:\\emulators\\RPCS3_backup_files\\dev_hdd0\\game\\NPUB31848\\USRDIR\\mod\\model\\field_tex\\f062_023_01.GFS\" -preset \"D:\\Github\\the-royal-project\\Royal Palaces\\misc\\Scripts\\Material Validator\\Presets\\Common_Field.yml\" -mats \"D:\\Github\\the-royal-project\\Royal Palaces\\misc\\Scripts\\Material Validator\\mats\""
     }
   }
 }

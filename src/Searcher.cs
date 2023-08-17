@@ -193,7 +193,7 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "castshadow" || searchParameter.materialKey.ToLower() == "bit15")
                 return material.Flags.HasFlag(MaterialFlags.CastShadow) == (Int32.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasattributes" || searchParameter.materialKey.ToLower() == "bit16")
-                return CheckAttributeTypes(material, Int32.Parse(searchParameter.materialValue));
+                return HasAttributeOfType(material, Int32.Parse(searchParameter.materialValue), out _);
             if (searchParameter.materialKey.ToLower() == "hasoutline" || searchParameter.materialKey.ToLower() == "bit17")
                 return material.Flags.HasFlag(MaterialFlags.HasOutline) == (Int32.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit18")
@@ -297,16 +297,16 @@ namespace P5MatValidator
 
     class Texcoord
     {
-        internal uint Raw { get; }
-        private int Diffuse { get; }
-        private int Normal { get; }
-        private int Specular { get; }
-        private int Reflection { get; }
-        private int Highlight { get; }
-        private int Glow { get; }
-        private int Night { get; }
-        private int Detail { get; }
-        private int Shadow { get; }
+        internal uint Raw { get; private set; }
+        internal int Diffuse { get; private set; }
+        internal int Normal { get; private set; }
+        internal int Specular { get; private set; }
+        internal int Reflection { get; private set; }
+        internal int Highlight { get; private set; }
+        internal int Glow { get; private set; }
+        internal int Night { get; private set; }
+        internal int Detail { get; private set; }
+        internal int Shadow { get; private set; }
 
         internal Texcoord(uint value)
         {
@@ -324,65 +324,64 @@ namespace P5MatValidator
 
         internal int TestTexcoord(Texcoord inputTexcoord, uint accuracy)
         {
-            int matchingCoords = 0;
+            int differingCoordCount = 0;
 
-            static int texCompare(int op1, int op2)
+            static int texCompare(int referenceCoord, int inputCoord)
             {
-                if (op1 == op2 && op2 != 7)
-                    return 1;
-                else if (op1 == 7)
+                if (referenceCoord == inputCoord)
                     return 0;
+                else if (referenceCoord == 7)
+                    return 1;
                 else
-                    return 2;
+                    return -1;
             }
 
             var cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
-            if (cDiffuse == 2)
+            if (cDiffuse == -1)
                 return -1;
-            matchingCoords += cDiffuse;
+            differingCoordCount += cDiffuse;
 
             var cNormal = texCompare(this.Normal, inputTexcoord.Normal);
-            if (cNormal == 2)
+            if (cNormal == -1)
                 return -1;
-            matchingCoords += cNormal;
+            differingCoordCount += cNormal;
 
             var cSpecular = texCompare(this.Specular, inputTexcoord.Specular);
-            if (cSpecular == 2)
+            if (cSpecular == -1)
                 return -1;
-            matchingCoords += cSpecular;
+            differingCoordCount += cSpecular;
 
             var cReflection = texCompare(this.Reflection, inputTexcoord.Reflection);
-            if (cReflection == 2)
+            if (cReflection == -1)
                 return -1;
-            matchingCoords += cReflection;
+            differingCoordCount += cReflection;
 
             var cHighlight = texCompare(this.Highlight, inputTexcoord.Highlight);
-            if (cHighlight == 2)
+            if (cHighlight == -1)
                 return -1;
-            matchingCoords += cHighlight;
+            differingCoordCount += cHighlight;
 
             var cGlow = texCompare(this.Glow, inputTexcoord.Glow);
-            if (cGlow == 2)
+            if (cGlow == -1)
                 return -1;
-            matchingCoords += cGlow;
+            differingCoordCount += cGlow;
 
             var cNight = texCompare(this.Night, inputTexcoord.Night);
-            if (cNight == 2)
+            if (cNight == -1)
                 return -1;
-            matchingCoords += cNight;
+            differingCoordCount += cNight;
 
             var cDetail = texCompare(this.Detail, inputTexcoord.Detail);
-            if (cDetail == 2)
+            if (cDetail == -1)
                 return -1;
-            matchingCoords += cDetail;
+            differingCoordCount += cDetail;
 
             var cShadow = texCompare(this.Shadow, inputTexcoord.Shadow);
-            if (cShadow == 2)
+            if (cShadow == -1)
                 return -1;
-            matchingCoords += cShadow;
+            differingCoordCount += cShadow;
 
-            int texDiff = inputTexcoord.GetEnabledTexcoordCount() - matchingCoords;
-            return texDiff <= accuracy ? texDiff : -1;
+            return differingCoordCount <= accuracy ? differingCoordCount : -1;
         }
         internal int GetEnabledTexcoordCount()
         {
