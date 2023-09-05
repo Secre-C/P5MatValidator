@@ -7,9 +7,10 @@ namespace P5MatValidator
 {
     internal static class MaterialTester
     {
-        internal static void TestAllMaterials(Resource resource, string yamlPresetPath, string resourceOutputPath, string cpkMakePath, string modOutputPath)
+        internal static void TestAllMaterials(Resource resource, string yamlPresetPath, string resourceOutputPath, string cpkMakePath, string modOutputPath, int batchSize = 1)
         {
             MaterialDictionary inputMatDict;
+            List<string> crashyMats = new();
 
             if (resource.ResourceType == ResourceType.ModelPack)
                 inputMatDict = ((ModelPack)resource).Materials;
@@ -21,14 +22,21 @@ namespace P5MatValidator
             //populate newMatDict with preset mats
             MaterialDictionary newMatDict = ConvertAllToPreset(inputMatDict, yamlPresetPath);
 
-            for(int i = 0; i < inputMatDict.Materials.Count; i++)
+            for(int i = 0; i < inputMatDict.Materials.Count; i += batchSize)
             {
-                //put mattest and overwrite thing here
-                newMatDict.Add(inputMatDict.Materials[i]);
+                for (int j = i; j < i + batchSize; j++)
+                {
+                    if (j >= inputMatDict.Materials.Count)
+                    {
+                        newMatDict.Add(inputMatDict.Materials[j]);
+                    }
+                }
+
                 SaveAndBuild(resource, newMatDict, resourceOutputPath, cpkMakePath, modOutputPath);
 
-                Console.Write($"\nTest {inputMatDict.Materials[i].Name}. Does it work? (Y/N) if it's preset just skip lmao: ");
+                Console.Write($"\nTest {inputMatDict.Materials[i].Name}. ({i + 1}/{inputMatDict.Materials.Count}) Does it work? (Y/N): ");
                 var keyPress = Console.ReadKey();
+                Console.WriteLine();
 
                 while (char.ToLower(keyPress.KeyChar) != 'y' && char.ToLower(keyPress.KeyChar) != 'n')
                 {
@@ -38,11 +46,22 @@ namespace P5MatValidator
 
                 if (char.ToLower(keyPress.KeyChar) == 'n')
                 {
-                    newMatDict.Add(GetPresetMaterial(inputMatDict.Materials[i], yamlPresetPath));
+                    for (int j = i; j < i + batchSize; j++)
+                    {
+                        if (j >= inputMatDict.Materials.Count)
+                        {
+                            newMatDict.Add(GetPresetMaterial(inputMatDict.Materials[j], yamlPresetPath));
+                            crashyMats.Add(inputMatDict.Materials[j].Name);
+                        }
+                    }
                 }
             }
 
             SaveAndBuild(resource, newMatDict, resourceOutputPath, cpkMakePath, modOutputPath);
+
+            Console.WriteLine("Crashy Mats:");
+
+            crashyMats.ForEach(Console.WriteLine);
         }
 
         internal static void SaveAndBuild(Resource resource, MaterialDictionary matDict, string resourceOutputPath, string cpkMakePath, string modOutputPath)

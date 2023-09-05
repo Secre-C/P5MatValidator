@@ -109,7 +109,10 @@ namespace P5MatValidator
 
                 var resource = Resource.Load(resourceInput);
 
-                MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath);
+                if (inputHandler.TryGetParameterValue("batch", out string batchSizeStr))
+                    MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath, int.Parse(batchSizeStr));
+                else
+                    MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath);
             }
             else
             {
