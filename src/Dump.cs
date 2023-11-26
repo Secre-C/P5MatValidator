@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using static GFDLibrary.Api.FlatApi;
-using static P5MatValidator.Program;
 using static P5MatValidator.Utils;
 
 namespace P5MatValidator
@@ -11,7 +10,7 @@ namespace P5MatValidator
         {
             string[] fileExtensions = { "*.GFS", "*.GMD" };
             var gfsFileNames = GetFiles(resourceDir, fileExtensions, SearchOption.AllDirectories);
-            List<string> failedMaterialFiles = new List<string>();
+            var failedMaterialFiles = new List<string>();
 
             var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
 

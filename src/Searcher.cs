@@ -227,7 +227,7 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "drawmethod" || searchParameter.materialKey.ToLower() == "field48")
                 return material.DrawMethod == (MaterialDrawMethod)uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field49")
-                return material.Field49 == uint .Parse(searchParameter.materialValue);
+                return material.Field49 == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field4a")
                 return material.Field4A == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field4b")
@@ -235,9 +235,9 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "field4c")
                 return material.Field4C == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "hightlightmapblendmode" || searchParameter.materialKey.ToLower() == "field4d")
-                return material.Field4D == uint             .Parse(searchParameter.materialValue);
+                return material.Field4D == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field90")
-                return material.Field90 ==  uint.Parse(searchParameter.materialValue);
+                return material.Field90 == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field94")
                 return material.Field94 == ParseTexcoord(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field96")

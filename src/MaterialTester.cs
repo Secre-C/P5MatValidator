@@ -92,17 +92,17 @@ namespace P5MatValidator
             var validator = new Validator(resources, strict);
             validator.RunValidation();
             var invalidMats = validator.materialValidationResults.Where(i => i.validity != Validator.MaterialValidity.Valid).ToList();
-            Console.WriteLine($"invalid - {invalidMats.Count}");
 
             var newMatDict = ConvertInvalidToPreset(inputMatDict, yamlPresetPath, invalidMats);
 
             for (int i = 0; i < invalidMats.Count; i++)
             {
-                newMatDict[invalidMats[i].material.Name] = inputMatDict[invalidMats[i].material.Name];
+                string material = invalidMats[i].material.Name;
+                newMatDict[material] = inputMatDict[material];
 
                 SaveAndBuild(resources.Resource, newMatDict, resourceInput, cpkMakePath, modOutputPath);
 
-                Console.Write($"\nTest {invalidMats[i].material.Name}. ({i + 1}/{invalidMats.Count}) Does it work? (Y/N): ");
+                Console.Write($"\nTest {material}. ({i + 1}/{invalidMats.Count}) Does it work? (Y/N): ");
                 var keyPress = Console.ReadKey();
                 Console.WriteLine();
 
@@ -114,8 +114,8 @@ namespace P5MatValidator
 
                 if (char.ToLower(keyPress.KeyChar) == 'n')
                 {
-                    newMatDict.Add(GetPresetMaterial(inputMatDict[invalidMats[i].material.Name], yamlPresetPath));
-                    crashyMats.Add(invalidMats[i].material.Name);
+                    newMatDict.Add(GetPresetMaterial(inputMatDict[material], yamlPresetPath));
+                    crashyMats.Add(material);
                 }
             }
 
