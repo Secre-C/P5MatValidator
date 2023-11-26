@@ -5,17 +5,18 @@ using static P5MatValidator.Utils;
 
 namespace P5MatValidator
 {
-    internal class Dump
+    internal static class Dump
     {
         internal static void DumpMats(string resourceDir, string matOutputDir)
         {
             string[] fileExtensions = { "*.GFS", "*.GMD" };
-            List<string> gfsFileNames = GetFiles(resourceDir, fileExtensions, SearchOption.AllDirectories);
+            var gfsFileNames = GetFiles(resourceDir, fileExtensions, SearchOption.AllDirectories);
+            List<string> failedMaterialFiles = new List<string>();
 
             var asSpan = CollectionsMarshal.AsSpan(gfsFileNames);
 
             //dump all material dictionaries from all files
-            foreach (var file in asSpan)
+            foreach (string? file in asSpan)
             {
                 try
                 {
@@ -28,17 +29,17 @@ namespace P5MatValidator
                 }
                 catch
                 {
-                    FailedMaterialFiles.Add($"{Path.GetRelativePath(resourceDir, file)}");
+                    failedMaterialFiles.Add($"{Path.GetRelativePath(resourceDir, file)}");
                 }
             }
 
             //Print files that failed to dump materials
-            if (FailedMaterialFiles.Count > 0)
+            if (failedMaterialFiles.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("\nFailed Dumps:\n" +
                 "=================================================");
-                foreach (var material in FailedMaterialFiles)
+                foreach (string material in failedMaterialFiles)
                 {
                     Console.WriteLine($"{material}");
                 }

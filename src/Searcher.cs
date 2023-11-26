@@ -1,9 +1,6 @@
 ﻿using GFDLibrary.Materials;
-using static P5MatValidator.Utils;
-using static P5MatValidator.MaterialResources;
 using static P5MatValidator.MaterialComparer;
 using static P5MatValidator.MaterialPoints;
-using System.Text.RegularExpressions;
 
 namespace P5MatValidator
 {
@@ -33,11 +30,8 @@ namespace P5MatValidator
                     continue;
                 }
 
-                try
-                {
-                    parsable = Byte.TryParse(args[i + 2], out texcoordSearch);
-                }
-                catch (IndexOutOfRangeException) { }
+                if (args.Length < i + 2)
+                    parsable = byte.TryParse(args[i + 2], out texcoordSearch);
 
                 if (parsable)
                 {
@@ -63,13 +57,13 @@ namespace P5MatValidator
         }
         public void SearchForMaterial(MaterialResources materialResource)
         {
-            foreach (ReferenceMaterial materials in materialResource.ReferenceMaterials)
+            foreach (var materials in materialResource.ReferenceMaterials)
             {
                 bool doesMaterialHaveMatchingMember = false;
 
-                foreach (Material material in materials.materials)
+                foreach (var material in materials.materials)
                 {
-                    foreach (SearchParameter searchParameter in SearchParameters)
+                    foreach (var searchParameter in SearchParameters)
                     {
                         doesMaterialHaveMatchingMember = CompareMaterialMemberValue(searchParameter, material);
 
@@ -97,11 +91,11 @@ namespace P5MatValidator
                 throw new NullReferenceException(nameof(materialResource));
 
             outputMaterials = new();
-            MaterialPoints materialPoints = GetMaterialPoints();
+            var materialPoints = GetMaterialPoints();
 
-            foreach (ReferenceMaterial referenceDict in materialResource.ReferenceMaterials)
+            foreach (var referenceDict in materialResource.ReferenceMaterials)
             {
-                foreach (Material reference in referenceDict.materials)
+                foreach (var reference in referenceDict.materials)
                 {
                     int compareResult = CompareMaterial(reference, inputMaterial, materialPoints, useStrictCompare, texcoordAccuracy);
 
@@ -127,7 +121,7 @@ namespace P5MatValidator
 
             Console.WriteLine($"\nFound {matches.Count} matches:\n");
             Console.ForegroundColor = ConsoleColor.Yellow;
-            foreach (MaterialComparer match in matches)
+            foreach (var match in matches)
             {
                 Console.WriteLine($"{match.points:D2} points || {match.material.Name} -> {match.materialFilename}");
             }
@@ -161,69 +155,69 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "name")
                 return material.Name.ToLower() == searchParameter.materialValue.ToLower();
             if (searchParameter.materialKey.ToLower() == "bit0")
-                return material.Flags.HasFlag(MaterialFlags.Bit0) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit0) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit1")
-                return material.Flags.HasFlag(MaterialFlags.Bit1) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit1) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit2")
-                return material.Flags.HasFlag(MaterialFlags.Bit2) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit2) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit3")
-                return material.Flags.HasFlag(MaterialFlags.Bit3) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit3) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "enablevertcolors" || searchParameter.materialKey.ToLower() == "bit4")
-                return material.Flags.HasFlag(MaterialFlags.EnableVertColors) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.EnableVertColors) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "opaquealpha1" || searchParameter.materialKey.ToLower() == "bit5")
-                return material.Flags.HasFlag(MaterialFlags.OpaqueAlpha1) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.OpaqueAlpha1) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit6")
-                return material.Flags.HasFlag(MaterialFlags.Bit6) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit6) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "enablelight" || searchParameter.materialKey.ToLower() == "bit7")
-                return material.Flags.HasFlag(MaterialFlags.EnableLight) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.EnableLight) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit8")
-                return material.Flags.HasFlag(MaterialFlags.Bit8) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit8) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit9")
-                return material.Flags.HasFlag(MaterialFlags.Bit9) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit9) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit10")
-                return material.Flags.HasFlag(MaterialFlags.Bit10) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit10) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "enablelight2" || searchParameter.materialKey.ToLower() == "bit11")
-                return material.Flags.HasFlag(MaterialFlags.EnableLight2) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.EnableLight2) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "purplewireframe" || searchParameter.materialKey.ToLower() == "bit12")
-                return material.Flags.HasFlag(MaterialFlags.PurpleWireframe) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.PurpleWireframe) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "opaquealpha2" || searchParameter.materialKey.ToLower() == "bit13")
-                return material.Flags.HasFlag(MaterialFlags.OpaqueAlpha2) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.OpaqueAlpha2) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "receiveshadow" || searchParameter.materialKey.ToLower() == "bit14")
-                return material.Flags.HasFlag(MaterialFlags.ReceiveShadow) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.ReceiveShadow) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "castshadow" || searchParameter.materialKey.ToLower() == "bit15")
-                return material.Flags.HasFlag(MaterialFlags.CastShadow) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.CastShadow) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasattributes" || searchParameter.materialKey.ToLower() == "bit16")
-                return HasAttributeOfType(material, Int32.Parse(searchParameter.materialValue), out _);
+                return HasAttributeOfType(material, int.Parse(searchParameter.materialValue), out _);
             if (searchParameter.materialKey.ToLower() == "hasoutline" || searchParameter.materialKey.ToLower() == "bit17")
-                return material.Flags.HasFlag(MaterialFlags.HasOutline) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasOutline) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit18")
-                return material.Flags.HasFlag(MaterialFlags.Bit18) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit18) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "disablebloom" || searchParameter.materialKey.ToLower() == "bit19")
-                return material.Flags.HasFlag(MaterialFlags.DisableBloom) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.DisableBloom) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasdiffusemap" || searchParameter.materialKey.ToLower() == "bit20")
-                return material.Flags.HasFlag(MaterialFlags.HasDiffuseMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasDiffuseMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasnormalmap" || searchParameter.materialKey.ToLower() == "bit21")
-                return material.Flags.HasFlag(MaterialFlags.HasNormalMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasNormalMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasspecularmap" || searchParameter.materialKey.ToLower() == "bit22")
-                return material.Flags.HasFlag(MaterialFlags.HasSpecularMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasSpecularMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasreflectionmap" || searchParameter.materialKey.ToLower() == "bit23")
-                return material.Flags.HasFlag(MaterialFlags.HasReflectionMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasReflectionMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hashighlightmap" || searchParameter.materialKey.ToLower() == "bit24")
-                return material.Flags.HasFlag(MaterialFlags.HasHighlightMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasHighlightMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasglowmap" || searchParameter.materialKey.ToLower() == "bit25")
-                return material.Flags.HasFlag(MaterialFlags.HasGlowMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasGlowMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasnightmap" || searchParameter.materialKey.ToLower() == "bit26")
-                return material.Flags.HasFlag(MaterialFlags.HasNightMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasNightMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasdetailmap" || searchParameter.materialKey.ToLower() == "bit27")
-                return material.Flags.HasFlag(MaterialFlags.HasDetailMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasDetailMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "hasshadowmap" || searchParameter.materialKey.ToLower() == "bit28")
-                return material.Flags.HasFlag(MaterialFlags.HasShadowMap) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.HasShadowMap) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit29")
-                return material.Flags.HasFlag(MaterialFlags.Bit29) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit29) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit30")
-                return material.Flags.HasFlag(MaterialFlags.Bit30) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit30) == (int.Parse(searchParameter.materialValue) != 0);
             if (searchParameter.materialKey.ToLower() == "bit31")
-                return material.Flags.HasFlag(MaterialFlags.Bit31) == (Int32.Parse(searchParameter.materialValue) != 0);
+                return material.Flags.HasFlag(MaterialFlags.Bit31) == (int.Parse(searchParameter.materialValue) != 0);
 
             //other values
             if (searchParameter.materialKey.ToLower() == "reflectivity" || searchParameter.materialKey.ToLower() == "field40")
@@ -231,25 +225,25 @@ namespace P5MatValidator
             if (searchParameter.materialKey.ToLower() == "outlineindex" || searchParameter.materialKey.ToLower() == "field44")
                 return material.Field44 == float.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "drawmethod" || searchParameter.materialKey.ToLower() == "field48")
-                return material.DrawMethod == (MaterialDrawMethod)UInt32.Parse(searchParameter.materialValue);
+                return material.DrawMethod == (MaterialDrawMethod)uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field49")
-                return material.Field49 == UInt32.Parse(searchParameter.materialValue);
+                return material.Field49 == uint .Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field4a")
-                return material.Field4A == UInt32.Parse(searchParameter.materialValue);
+                return material.Field4A == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field4b")
-                return material.Field4B == UInt32.Parse(searchParameter.materialValue);
+                return material.Field4B == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field4c")
-                return material.Field4C == UInt32.Parse(searchParameter.materialValue);
+                return material.Field4C == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "hightlightmapblendmode" || searchParameter.materialKey.ToLower() == "field4d")
-                return material.Field4D == UInt32.Parse(searchParameter.materialValue);
+                return material.Field4D == uint             .Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field90")
-                return material.Field90 == UInt32.Parse(searchParameter.materialValue);
+                return material.Field90 ==  uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field94")
                 return material.Field94 == ParseTexcoord(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field96")
-                return material.Field96 == UInt32.Parse(searchParameter.materialValue);
+                return material.Field96 == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field5c")
-                return material.Field5C == UInt32.Parse(searchParameter.materialValue);
+                return material.Field5C == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "texcoord1" || searchParameter.materialKey.ToLower() == "field6c")
             {
                 if (searchParameter.texcoordMatchCount != 0)
@@ -273,24 +267,24 @@ namespace P5MatValidator
                 }
             }
             if (searchParameter.materialKey.ToLower() == "disablebackfaceculling")
-                return material.DisableBackfaceCulling == UInt32.Parse(searchParameter.materialValue);
+                return material.DisableBackfaceCulling == uint.Parse(searchParameter.materialValue);
             if (searchParameter.materialKey.ToLower() == "field98")
-                return material.Field98 == UInt32.Parse(searchParameter.materialValue);
+                return material.Field98 == uint.Parse(searchParameter.materialValue);
 
             Console.WriteLine($"Material member \"{searchParameter.materialKey}\" is not a valid member");
             return false;
         }
 
-        static UInt32 ParseTexcoord(string hexString)
+        static uint ParseTexcoord(string hexString)
         {
             if (hexString.StartsWith("0x"))
             {
                 hexString = hexString[2..];
-                return UInt32.Parse(hexString, System.Globalization.NumberStyles.HexNumber);
+                return uint.Parse(hexString, System.Globalization.NumberStyles.HexNumber);
             }
             else
             {
-                return UInt32.Parse(hexString);
+                return uint.Parse(hexString);
             }
         }
     }
@@ -336,47 +330,47 @@ namespace P5MatValidator
                     return -1;
             }
 
-            var cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
+            int cDiffuse = texCompare(this.Diffuse, inputTexcoord.Diffuse);
             if (cDiffuse == -1)
                 return -1;
             differingCoordCount += cDiffuse;
 
-            var cNormal = texCompare(this.Normal, inputTexcoord.Normal);
+            int cNormal = texCompare(this.Normal, inputTexcoord.Normal);
             if (cNormal == -1)
                 return -1;
             differingCoordCount += cNormal;
 
-            var cSpecular = texCompare(this.Specular, inputTexcoord.Specular);
+            int cSpecular = texCompare(this.Specular, inputTexcoord.Specular);
             if (cSpecular == -1)
                 return -1;
             differingCoordCount += cSpecular;
 
-            var cReflection = texCompare(this.Reflection, inputTexcoord.Reflection);
+            int cReflection = texCompare(this.Reflection, inputTexcoord.Reflection);
             if (cReflection == -1)
                 return -1;
             differingCoordCount += cReflection;
 
-            var cHighlight = texCompare(this.Highlight, inputTexcoord.Highlight);
+            int cHighlight = texCompare(this.Highlight, inputTexcoord.Highlight);
             if (cHighlight == -1)
                 return -1;
             differingCoordCount += cHighlight;
 
-            var cGlow = texCompare(this.Glow, inputTexcoord.Glow);
+            int cGlow = texCompare(this.Glow, inputTexcoord.Glow);
             if (cGlow == -1)
                 return -1;
             differingCoordCount += cGlow;
 
-            var cNight = texCompare(this.Night, inputTexcoord.Night);
+            int cNight = texCompare(this.Night, inputTexcoord.Night);
             if (cNight == -1)
                 return -1;
             differingCoordCount += cNight;
 
-            var cDetail = texCompare(this.Detail, inputTexcoord.Detail);
+            int cDetail = texCompare(this.Detail, inputTexcoord.Detail);
             if (cDetail == -1)
                 return -1;
             differingCoordCount += cDetail;
 
-            var cShadow = texCompare(this.Shadow, inputTexcoord.Shadow);
+            int cShadow = texCompare(this.Shadow, inputTexcoord.Shadow);
             if (cShadow == -1)
                 return -1;
             differingCoordCount += cShadow;
@@ -403,7 +397,6 @@ namespace P5MatValidator
         internal int TestTexcoord(uint value, uint accuracy)
         {
             Texcoord inputTexcoord = new(value);
-
             return TestTexcoord(inputTexcoord, accuracy);
         }
     }

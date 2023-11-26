@@ -9,13 +9,13 @@ namespace P5MatValidator
         private readonly MaterialResources materialResources;
         private readonly bool useStrictCompare = false;
 
-        internal Validator(MaterialResources materialResources, bool useStrictCompare) 
+        internal Validator(MaterialResources materialResources, bool useStrictCompare)
             : this(materialResources)
         {
             this.useStrictCompare = useStrictCompare;
         }
 
-        internal Validator(MaterialResources materialResources) 
+        internal Validator(MaterialResources materialResources)
         {
             this.materialResources = materialResources;
         }
@@ -31,19 +31,19 @@ namespace P5MatValidator
             List<string> invalidMats = new();
             List<string> sameNameMats = new();
 
-            foreach ( var material in materialValidationResults ) 
+            foreach (var material in materialValidationResults)
             {
-                if (material.materialValidity == MaterialValidity.Valid)
+                if (material.validity == MaterialValidity.Valid)
                 {
-                    validMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
+                    validMats.Add($"{material.material.Name} -> {material.material.Name}");
                 }
-                else if (material.materialValidity == MaterialValidity.Invalid)
+                else if (material.validity == MaterialValidity.Invalid)
                 {
-                    invalidMats.Add($"{material.materialName}");
+                    invalidMats.Add($"{material.material.Name}");
                 }
-                else if (material.materialValidity == MaterialValidity.SameName)
+                else if (material.validity == MaterialValidity.SameName)
                 {
-                    sameNameMats.Add($"{material.materialName} -> {material.matchingMaterialPath}");
+                    sameNameMats.Add($"{material.material.Name} -> {material.material.Name}");
                 }
             }
 
@@ -58,7 +58,7 @@ namespace P5MatValidator
                 Console.WriteLine($"Valid Mats ({validMats.Count}):\n");
 
                 Console.ForegroundColor = ConsoleColor.Green;
-                foreach (var mat in validMats)
+                foreach (string mat in validMats)
                     Console.WriteLine(mat);
 
                 Console.ForegroundColor = ConsoleColor.White;
@@ -74,7 +74,7 @@ namespace P5MatValidator
                     Console.WriteLine($"Invalid Mats With Matching Names (Strict Mode) ({sameNameMats.Count}):\n");
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                foreach (var mat in sameNameMats)
+                foreach (string mat in sameNameMats)
                     Console.WriteLine(mat);
 
                 Console.ForegroundColor = ConsoleColor.White;
@@ -90,7 +90,7 @@ namespace P5MatValidator
                     Console.WriteLine($"Invalid Mats (Strict Mode) ({invalidMats.Count}):\n");
 
                 Console.ForegroundColor = ConsoleColor.Red;
-                foreach (var mat in invalidMats)
+                foreach (string mat in invalidMats)
                     Console.WriteLine(mat);
 
                 Console.ForegroundColor = ConsoleColor.White;
@@ -100,9 +100,9 @@ namespace P5MatValidator
         private void CompareAllMaterials()
         {
             List<Task<MaterialValidationResult>> compareTasks = new();
-            MaterialPoints materialPoints = MaterialPoints.GetMaterialPoints();
+            var materialPoints = MaterialPoints.GetMaterialPoints();
 
-            foreach (var royalMaterialDict in materialResources.InputMaterials)
+            foreach (var royalMaterialDict in materialResources.MaterialDictionary.Materials)
             {
                 Task<MaterialValidationResult> compareTask = new(() => CompareMaterials(royalMaterialDict, materialPoints));
                 compareTask.Start();
@@ -115,15 +115,15 @@ namespace P5MatValidator
 
         internal MaterialValidationResult CompareMaterials(Material royalMaterial, MaterialPoints materialPoints)
         {
-            MaterialValidity validity = MaterialValidity.Invalid;
+            var validity = MaterialValidity.Invalid;
             string matchingMat = "";
 
             for (int i = 0; i < materialResources.ReferenceMaterials.Count; i++)
             {
-                MaterialResources.ReferenceMaterial referenceMaterial = materialResources.ReferenceMaterials[i];
+                var referenceMaterial = materialResources.ReferenceMaterials[i];
                 for (int j = 0; j < referenceMaterial.materials.Count; j++)
                 {
-                    Material material = referenceMaterial.materials[j];
+                    var material = referenceMaterial.materials[j];
                     if (material.Name == royalMaterial.Name)
                     {
                         validity = MaterialValidity.SameName;
@@ -145,28 +145,28 @@ namespace P5MatValidator
 
             return new MaterialValidationResult
             {
-                materialName = royalMaterial.Name,
-                materialValidity = validity,
+                material = royalMaterial,
+                validity = validity,
                 matchingMaterialPath = matchingMat
             };
         }
 
         internal bool IsMaterialValid(string materialName)
         {
-            return !materialValidationResults.Any(validatorResult => 
-            validatorResult.materialName == materialName && 
-            (validatorResult.materialValidity == MaterialValidity.Invalid || validatorResult.materialValidity == MaterialValidity.SameName));
+            return !materialValidationResults.Any(validatorResult =>
+            validatorResult.material.Name == materialName &&
+            (validatorResult.validity == MaterialValidity.Invalid || validatorResult.validity == MaterialValidity.SameName));
         }
 
         internal static bool IsMaterialValid(MaterialValidationResult result)
         {
-            return result.materialValidity == MaterialValidity.Valid;
+            return result.validity == MaterialValidity.Valid;
         }
 
         internal struct MaterialValidationResult
         {
-            internal string materialName;
-            internal MaterialValidity materialValidity;
+            internal Material material;
+            internal MaterialValidity validity;
             internal string matchingMaterialPath;
         }
 

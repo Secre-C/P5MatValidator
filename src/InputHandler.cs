@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace P5MatValidator
+﻿namespace P5MatValidator
 {
     public class InputHandler
     {
         internal readonly string[] Args;
         internal readonly Dictionary<string, string> Parameters = new();
-        internal readonly List<string> Commands = new();
-        public InputHandler(string[] input) 
+        internal readonly HashSet<string> Commands = new();
+        public InputHandler(string[] input)
         {
             Args = input;
 

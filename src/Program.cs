@@ -1,22 +1,16 @@
 ﻿using GFDLibrary;
 using GFDLibrary.Materials;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using static GFDLibrary.Api.FlatApi;
 using static P5MatValidator.Combine;
 using static P5MatValidator.Converter;
 using static P5MatValidator.Dump;
 using static P5MatValidator.MaterialSearcher;
-using static P5MatValidator.Utils;
-using static P5MatValidator.Validator;
 
 namespace P5MatValidator
 {
     internal class Program
     {
-        public static Stopwatch Stopwatch = new ();
-        public static List<string> FailedMaterialFiles = new();
+        public static Stopwatch Stopwatch = new();
 
         static void ShowProgramUsage()
         {
@@ -35,7 +29,7 @@ namespace P5MatValidator
             //timer for benchmarking
             Stopwatch.Start();
 
-            //run commands based on 
+            //run commands
             if (inputHandler.HasCommand("validate") || inputHandler.HasCommand("convert"))
             {
                 string fileInput = inputHandler.GetParameterValue("i");
@@ -52,7 +46,7 @@ namespace P5MatValidator
                     if (!inputHandler.TryGetParameterValue("o", out string modelOutputPath))
                         modelOutputPath = materialResource.InputFilePath;
 
-                    ConvertAllInvalidMaterials(materialResource.InputResource, inputHandler, validator, modelOutputPath, materialResource);
+                    ConvertAllInvalidMaterials(materialResource.Resource, inputHandler, validator, materialResource).Save(modelOutputPath);
                 }
             }
             else if (inputHandler.TryGetParameterValue("combine", out string materialVersion))
@@ -62,7 +56,8 @@ namespace P5MatValidator
 
                 var materialResource = new MaterialResources(materialDumpPath);
 
-                CreateCombinedMat(materialResource, outputFilePath, materialVersion);
+                var combinedMat = CreateCombinedMat(materialResource, materialVersion);
+                combinedMat.Save(outputFilePath);
             }
             else if (inputHandler.HasCommand("dump"))
             {
@@ -80,21 +75,21 @@ namespace P5MatValidator
             }
             else if (inputHandler.HasCommand("findsimilar"))
             {
-                Material inputMaterial = (Material)Resource.Load(inputHandler.GetParameterValue("i"));
+                var inputMaterial = (Material)Resource.Load(inputHandler.GetParameterValue("i"));
                 bool useStrictCompare = inputHandler.HasCommand("strict");
                 int maximumPoints = int.Parse(inputHandler.GetParameterValue("points"));
                 uint texcoordAccuracy = uint.Parse(inputHandler.GetParameterValue("accuracy"));
                 string referenceMaterialPath = inputHandler.GetParameterValue("mats");
                 var materialResource = new MaterialResources(referenceMaterialPath);
 
-                bool matchesFound = TryFindReplacementMat(inputMaterial, materialResource, out List<MaterialComparer>? matches, useStrictCompare, maximumPoints, texcoordAccuracy);
+                bool matchesFound = TryFindReplacementMat(inputMaterial, materialResource, out var matches, useStrictCompare, maximumPoints, texcoordAccuracy);
 
                 if (!matchesFound)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("\nNo matches");
                     Console.ForegroundColor = ConsoleColor.White;
-                }    
+                }
                 else
                 {
                     PrintFindReplacementResults(matches);
@@ -102,17 +97,7 @@ namespace P5MatValidator
             }
             else if (inputHandler.HasCommand("test"))
             {
-                string resourceInput = inputHandler.GetParameterValue("i");
-                string modOutputPath = inputHandler.GetParameterValue("o");
-                string yamlPresetPath = inputHandler.GetParameterValue("preset");
-                string cpkMakePath = inputHandler.GetParameterValue("cpkmakec");
-
-                var resource = Resource.Load(resourceInput);
-
-                if (inputHandler.TryGetParameterValue("batch", out string batchSizeStr))
-                    MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath, int.Parse(batchSizeStr));
-                else
-                    MaterialTester.TestAllMaterials(resource, yamlPresetPath, resourceInput, cpkMakePath, modOutputPath);
+                MaterialTester.TestMaterials(inputHandler);
             }
             else
             {

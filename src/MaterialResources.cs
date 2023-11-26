@@ -1,16 +1,15 @@
 ﻿using GFDLibrary;
 using GFDLibrary.Materials;
-using static GFDLibrary.Api.FlatApi;
 using static P5MatValidator.Utils;
 
 namespace P5MatValidator
 {
     public class MaterialResources
     {
-        internal Resource InputResource { get; private set; } = new ModelPack();
+        internal Resource Resource { get; private set; } = new ModelPack();
         internal string InputFilePath { get; private set; } = string.Empty;
         internal string ReferenceMaterialPath { get; private set; } = string.Empty;
-        internal List<Material> InputMaterials { get; private set; } = new();
+        internal MaterialDictionary MaterialDictionary { get; private set; }
         internal List<ReferenceMaterial> ReferenceMaterials { get; private set; } = new();
 
         public MaterialResources(string referenceMaterialPath)
@@ -23,21 +22,48 @@ namespace P5MatValidator
             InputFilePath = inputFilePath;
             ReferenceMaterialPath = referenceMaterialPath;
 
-            InputResource = Resource.Load(inputFilePath);
-            Task<ReferenceMaterial> getInputFileMaterials = new(() => GenerateMaterialList(InputResource, inputFilePath));
-            getInputFileMaterials.Start();
+            Resource = Resource.Load(inputFilePath);
+
+            MaterialDictionary = GetMaterialDictionary(Resource);
 
             GetReferenceMaterials();
+        }
 
-            InputMaterials = getInputFileMaterials.Result.materials;
+        private static MaterialDictionary GetMaterialDictionary(Resource resource)
+        {
+            //Add List of materials and filename to materialInfo struct
+            if (resource.ResourceType == ResourceType.ModelPack)
+            {
+                var modelPack = (ModelPack)resource;
+                return modelPack.Materials;
+            }
+            else if (resource.ResourceType == ResourceType.MaterialDictionary)
+            {
+                return (MaterialDictionary)resource;
+            }
+            else if (resource.ResourceType == ResourceType.Material)
+            {
+                var mat = (Material)resource;
+
+                var matDict = new MaterialDictionary
+                {
+                    mat
+                };
+
+                return matDict;
+            }
+            else
+            {
+                return new MaterialDictionary();
+            }
         }
 
         private void GetReferenceMaterials()
         {
             string[] fileExtensions = { "*.gmtd", "*.gmt", "*.GFS", "*.GMD" };
-            List<string> referenceMaterialFiles = GetFiles(ReferenceMaterialPath, fileExtensions, SearchOption.AllDirectories);
+            var referenceMaterialFiles = GetFiles(ReferenceMaterialPath, fileExtensions, SearchOption.AllDirectories);
 
-            foreach (var referenceMaterialFile in referenceMaterialFiles)
+            foreach (string referenceMaterialFile in referenceMaterialFiles)
             {
                 try
                 {
@@ -55,30 +81,30 @@ namespace P5MatValidator
             return GenerateMaterialList(Resource.Load(filePath), filePath);
         }
 
-        internal ReferenceMaterial GenerateMaterialList(Resource gfdResource, string filePath)
+        internal ReferenceMaterial GenerateMaterialList(Resource resource, string filePath)
         {
             ReferenceMaterial materialInfo = new();
 
             //Add List of materials and filename to materialInfo struct
-            if (gfdResource.ResourceType == ResourceType.ModelPack)
+            if (resource.ResourceType == ResourceType.ModelPack)
             {
-                var model = (ModelPack)gfdResource;
+                var model = (ModelPack)resource;
                 materialInfo.materials = (List<Material>)model.Materials.Materials;
                 materialInfo.fileName = Path.GetRelativePath(ReferenceMaterialPath, filePath);
 
                 return materialInfo;
             }
-            else if (gfdResource.ResourceType == ResourceType.MaterialDictionary)
+            else if (resource.ResourceType == ResourceType.MaterialDictionary)
             {
-                var matDict = (MaterialDictionary)gfdResource;
+                var matDict = (MaterialDictionary)resource;
                 materialInfo.materials = (List<Material>)matDict.Materials;
                 materialInfo.fileName = Path.GetRelativePath(ReferenceMaterialPath, filePath);
 
                 return materialInfo;
             }
-            else if (gfdResource.ResourceType == ResourceType.Material)
+            else if (resource.ResourceType == ResourceType.Material)
             {
-                Material mat = (Material)gfdResource;
+                var mat = (Material)resource;
 
                 materialInfo.materials = new List<Material>
                 {

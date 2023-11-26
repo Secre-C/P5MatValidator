@@ -9,7 +9,7 @@ namespace P5MatValidator
         public readonly string materialFilename;
         public readonly Material material;
         public readonly int points;
-        
+
         public MaterialComparer(Material material, int points, string materialFilename)
         {
             this.material = material;
@@ -86,10 +86,10 @@ namespace P5MatValidator
             if (!AreEqual(material.Field70, royalMaterial.Field70)) //texcoord2
             {
                 int texcoordAccuracyResult = FindReducedTexcoord(material.Field70, royalMaterial.Field70, texcoordAccuracy);
-               
+
                 if (texcoordAccuracyResult == -1)
                     return -1;
-               
+
                 points += texcoordAccuracyResult * 2;
             }
             if (!AreAttributesEqual(material, royalMaterial, useStrictCompare))
@@ -212,7 +212,7 @@ namespace P5MatValidator
             }
 
 
-            Texcoord referenceTexcoord = new (referenceValue);
+            Texcoord referenceTexcoord = new(referenceValue);
 
             return referenceTexcoord.TestTexcoord(inputValue, accuracy);
         }
@@ -333,7 +333,7 @@ namespace P5MatValidator
 
             if (File.Exists(matPointPath))
             {
-                MaterialPoints? pointsjson = JsonSerializer.Deserialize<MaterialPoints>(File.ReadAllText(matPointPath));
+                var pointsjson = JsonSerializer.Deserialize<MaterialPoints>(File.ReadAllText(matPointPath));
 
                 if (pointsjson != null)
                 {

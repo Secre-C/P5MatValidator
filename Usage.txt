@@ -47,5 +47,8 @@ Parameters and Commands:
 		"-o" -- mod output folder path
 		"-preset" -- material preset yml path. if the material has no diffuse map, it'll use "1_gfdDefaultMat0.yml" in the same folder
 		"-cpkmakec" -- path to cpkmakec exe
+		"!onlyinvalid" -- only test invalid mats
+		"!strict" -- (only when using "!onlyinvalid") use strict mode when testing for invalid mats
+		"-mats" -- (only when using "!onlyinvalid") path of material dump
 		Example: [ -i folder/model.GFS -o USRDIR/mod -preset folder/preset.yml -cpkmakec folder/cpkmakec.exe !test ]
 		

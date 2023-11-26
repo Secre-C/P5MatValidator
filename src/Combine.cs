@@ -1,14 +1,14 @@
 ﻿using GFDLibrary.Materials;
-using static P5MatValidator.Program;
-using static P5MatValidator.Utils;
 
 namespace P5MatValidator
 {
-    internal class Combine
+    internal static class Combine
     {
-        internal static void CreateCombinedMat(MaterialResources materialResource, string outputFilePath, string materialVersion)
+        internal static MaterialDictionary CreateCombinedMat(MaterialResources materialResource, string materialVersion)
         {
-            _ = UInt32.TryParse(materialVersion, out uint matVersion);
+            if (!uint.TryParse(materialVersion, out uint matVersion))
+                throw new Exception("Couldn't parse mat version");
+
             Console.WriteLine("Combining Materials...");
 
             var combinedMatDict = new MaterialDictionary();
@@ -19,19 +19,7 @@ namespace P5MatValidator
                     combinedMatDict.Add(mat);
             }
 
-            if (FailedMaterialFiles.Count > 0)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Failed to Combine:\n" +
-                "=================================================");
-                foreach (var material in FailedMaterialFiles)
-                {
-                    Console.WriteLine($"{material}");
-                }
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-
-            combinedMatDict.Save(outputFilePath);
+            return combinedMatDict;
         }
     }
 }
